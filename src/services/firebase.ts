@@ -1,6 +1,6 @@
 // services/firebase.ts
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc, setDoc } from 'firebase/firestore';
 import { getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -19,11 +19,35 @@ export const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
-export const registerWithEmail = (email: string, password: string, name: string) =>
-  createUserWithEmailAndPassword(auth, email, password).then((userCredential) => {
+
+export const registerWithEmail = async (email: string, password: string, name: string, phone?: string, role?: string) => {
+  try {
+    // Создаем пользователя в Firebase Auth
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-    return updateProfile(user, { displayName: name });
-  });
+    
+    // Обновляем профиль пользователя
+    await updateProfile(user, { displayName: name });
+    
+    // Сохраняем дополнительную информацию в Firestore
+    await setDoc(doc(db, 'users', user.uid), {
+      uid: user.uid,
+      name: name,
+      email: email,
+      phone: phone || '',
+      role: role || 'client',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    
+    console.log('Пользователь успешно зарегистрирован и данные сохранены');
+    return userCredential;
+  } catch (error) {
+    console.error('Ошибка при регистрации пользователя:', error);
+    throw error;
+  }
+};
+
 export const loginWithEmail = (email: string, password: string) =>
   signInWithEmailAndPassword(auth, email, password);
 
@@ -38,4 +62,4 @@ export const addOrder = async (order: any) => {
   }
 };
 
-export { onAuthStateChanged }; // Ensure onAuthStateChanged is exported
+export { onAuthStateChanged };

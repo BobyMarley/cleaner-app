@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { IonContent, IonHeader, IonPage, IonToolbar, IonButton, IonIcon, IonInput, IonSelect, IonSelectOption, IonFooter, IonTabBar, IonTabButton, IonLabel } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonToolbar, IonButton, IonIcon, IonInput, IonSelect, IonSelectOption, IonFooter, IonTabBar, IonTabButton, IonLabel, IonLoading } from '@ionic/react';
 import { useNavigate } from 'react-router-dom';
 import { 
   homeOutline, 
@@ -24,6 +24,13 @@ const RegisterPage: React.FC<{ isWorker?: boolean }> = ({ isWorker }) => {
   const [phone, setPhone] = useState<string>('');
   const [role, setRole] = useState<'client' | 'worker'>('client');
   const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  
+  // Состояния для валидации в реальном времени
+  const [emailError, setEmailError] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>('');
+  const [nameError, setNameError] = useState<string>('');
+  const [phoneError, setPhoneError] = useState<string>('');
 
   const goToHome = () => navigate('/');
   const goToOrder = () => navigate('/order');
@@ -39,6 +46,44 @@ const RegisterPage: React.FC<{ isWorker?: boolean }> = ({ isWorker }) => {
     if (isWorker) setRole('worker');
   }, [isWorker]);
 
+  // Валидация email в реальном времени
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email && !emailRegex.test(email)) {
+      setEmailError('Некорректный email адрес');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  // Валидация пароля в реальном времени
+  const validatePassword = (password: string) => {
+    if (password && password.length < 6) {
+      setPasswordError('Пароль должен содержать минимум 6 символов');
+    } else {
+      setPasswordError('');
+    }
+  };
+
+  // Валидация имени в реальном времени
+  const validateName = (name: string) => {
+    if (name && name.trim().length < 2) {
+      setNameError('Имя должно содержать минимум 2 символа');
+    } else {
+      setNameError('');
+    }
+  };
+
+  // Валидация телефона в реальном времени
+  const validatePhone = (phone: string) => {
+    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    if (phone && !phoneRegex.test(phone.replace(/\s/g, ''))) {
+      setPhoneError('Некорректный номер телефона');
+    } else {
+      setPhoneError('');
+    }
+  };
+
   // Функция перенаправления после успешной регистрации
   const redirectAfterRegister = () => {
     const redirectPath = sessionStorage.getItem('redirectAfterLogin');
@@ -51,25 +96,56 @@ const RegisterPage: React.FC<{ isWorker?: boolean }> = ({ isWorker }) => {
   };
 
   const handleRegister = async () => {
-    // Валидация данных
+    // Очищаем предыдущие ошибки
+    setError('');
+    
+    // Валидация данных перед отправкой
+    let hasErrors = false;
+
     if (!name.trim()) {
-      setError('Пожалуйста, введите ваше имя');
-      return;
+      setNameError('Пожалуйста, введите ваше имя');
+      hasErrors = true;
+    } else if (name.trim().length < 2) {
+      setNameError('Имя должно содержать минимум 2 символа');
+      hasErrors = true;
     }
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Пожалуйста, введите корректный email адрес');
-      return;
+    if (!email) {
+      setEmailError('Пожалуйста, введите email');
+      hasErrors = true;
+    } else if (!emailRegex.test(email)) {
+      setEmailError('Пожалуйста, введите корректный email адрес');
+      hasErrors = true;
     }
     
-    if (password.length < 6) {
-      setError('Пароль должен содержать минимум 6 символов');
+    if (!password) {
+      setPasswordError('Пожалуйста, введите пароль');
+      hasErrors = true;
+    } else if (password.length < 6) {
+      setPasswordError('Пароль должен содержать минимум 6 символов');
+      hasErrors = true;
+    }
+
+    // Проверка телефона (необязательное поле)
+    if (phone) {
+      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+      if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
+        setPhoneError('Некорректный номер телефона');
+        hasErrors = true;
+      }
+    }
+
+    if (hasErrors) {
+      setError('Пожалуйста, исправьте ошибки в форме');
       return;
     }
 
+    setIsLoading(true);
+
     try {
-      await registerWithEmail(email, password, name);
+      await registerWithEmail(email, password, name.trim(), phone.trim(), role);
+      console.log('Регистрация прошла успешно');
       redirectAfterRegister();
     } catch (err: any) {
       console.error('Registration error:', err);
@@ -85,15 +161,44 @@ const RegisterPage: React.FC<{ isWorker?: boolean }> = ({ isWorker }) => {
         case 'auth/weak-password':
           errorMessage = 'Слабый пароль. Используйте минимум 6 символов';
           break;
+        case 'auth/operation-not-allowed':
+          errorMessage = 'Регистрация временно отключена';
+          break;
         case 'auth/network-request-failed':
           errorMessage = 'Ошибка сети. Проверьте подключение к интернету';
           break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Слишком много попыток. Попробуйте позже';
+          break;
         default:
-          errorMessage = 'Ошибка регистрации. Попробуйте снова';
+          errorMessage = err.message || 'Ошибка регистрации. Попробуйте снова';
       }
       
       setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  // Обработчики изменения полей с валидацией
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    validateEmail(value);
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    validatePassword(value);
+  };
+
+  const handleNameChange = (value: string) => {
+    setName(value);
+    validateName(value);
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    validatePhone(value);
   };
 
   return (
@@ -126,43 +231,47 @@ const RegisterPage: React.FC<{ isWorker?: boolean }> = ({ isWorker }) => {
                   <IonIcon icon={personCircleOutline} className="input-icon" />
                   <IonInput
                     value={name}
-                    onIonChange={(e) => setName(e.detail.value || '')}
+                    onIonChange={(e) => handleNameChange(e.detail.value || '')}
                     placeholder="Имя"
                     className="w-full rounded-xl py-4 pl-12 pr-4 font-montserrat"
                   />
+                  {nameError && <p className="text-red-500 text-xs mt-1 font-montserrat">{nameError}</p>}
                 </div>
 
                 <div className="relative">
                   <IonIcon icon={mailOutline} className="input-icon" />
                   <IonInput
                     value={email}
-                    onIonChange={(e) => setEmail(e.detail.value || '')}
+                    onIonChange={(e) => handleEmailChange(e.detail.value || '')}
                     placeholder="Email"
                     type="email"
                     className="w-full rounded-xl py-4 pl-12 pr-4 font-montserrat"
                   />
+                  {emailError && <p className="text-red-500 text-xs mt-1 font-montserrat">{emailError}</p>}
                 </div>
 
                 <div className="relative">
                   <IonIcon icon={callOutline} className="input-icon" />
                   <IonInput
                     value={phone}
-                    onIonChange={(e) => setPhone(e.detail.value || '')}
-                    placeholder="Телефон"
+                    onIonChange={(e) => handlePhoneChange(e.detail.value || '')}
+                    placeholder="Телефон (необязательно)"
                     type="tel"
                     className="w-full rounded-xl py-4 pl-12 pr-4 font-montserrat"
                   />
+                  {phoneError && <p className="text-red-500 text-xs mt-1 font-montserrat">{phoneError}</p>}
                 </div>
 
                 <div className="relative">
                   <IonIcon icon={lockClosedOutline} className="input-icon" />
                   <IonInput
                     value={password}
-                    onIonChange={(e) => setPassword(e.detail.value || '')}
+                    onIonChange={(e) => handlePasswordChange(e.detail.value || '')}
                     placeholder="Пароль"
                     type="password"
                     className="w-full rounded-xl py-4 pl-12 pr-4 font-montserrat"
                   />
+                  {passwordError && <p className="text-red-500 text-xs mt-1 font-montserrat">{passwordError}</p>}
                 </div>
 
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-xl py-2 px-4">
@@ -186,9 +295,10 @@ const RegisterPage: React.FC<{ isWorker?: boolean }> = ({ isWorker }) => {
                 <IonButton
                   expand="block"
                   onClick={handleRegister}
+                  disabled={isLoading || !!emailError || !!passwordError || !!nameError || !!phoneError}
                   className="custom-button rounded-xl shadow-lg text-base font-montserrat h-14 w-full mt-4"
                 >
-                  Зарегистрироваться
+                  {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
                 </IonButton>
               </div>
             </div>
@@ -204,6 +314,12 @@ const RegisterPage: React.FC<{ isWorker?: boolean }> = ({ isWorker }) => {
           </div>
         </div>
       </IonContent>
+      
+      <IonLoading
+        isOpen={isLoading}
+        message="Создание аккаунта..."
+      />
+      
       <IonFooter>
         <IonTabBar slot="bottom" className="bg-white dark:bg-gray-800 shadow-md">
           <IonTabButton tab="home" onClick={goToHome}>

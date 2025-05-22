@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { IonContent, IonHeader, IonPage, IonToolbar, IonButton, IonIcon, IonInput, IonItem, IonFooter, IonTabBar, IonTabButton, IonLabel } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonToolbar, IonButton, IonIcon, IonInput, IonFooter, IonTabBar, IonTabButton, IonLabel, IonLoading } from '@ionic/react';
 import { useNavigate } from 'react-router-dom';
 import { homeOutline, personOutline, cartOutline, sunnyOutline, moonOutline, mailOutline, lockClosedOutline, logoGoogle } from 'ionicons/icons';
 import newLogo from '../assets/new-logo.png';
@@ -13,6 +13,7 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [emailError, setEmailError] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Валидация email в реальном времени
   const validateEmail = (email: string) => {
@@ -55,20 +56,34 @@ const LoginPage: React.FC = () => {
   };
 
   const handleLogin = async () => {
+    // Очищаем предыдущие ошибки
+    setError('');
+    
     // Простая валидация email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      setError('Пожалуйста, введите email адрес');
+      return;
+    }
     if (!emailRegex.test(email)) {
       setError('Пожалуйста, введите корректный email адрес');
       return;
     }
     
+    if (!password) {
+      setError('Пожалуйста, введите пароль');
+      return;
+    }
     if (password.length < 6) {
       setError('Пароль должен содержать минимум 6 символов');
       return;
     }
 
+    setIsLoading(true);
+
     try {
       await loginWithEmail(email, password);
+      console.log('Вход выполнен успешно');
       redirectAfterLogin();
     } catch (err: any) {
       console.error('Login error:', err);
@@ -79,10 +94,14 @@ const LoginPage: React.FC = () => {
           errorMessage = 'Пользователь с таким email не найден';
           break;
         case 'auth/wrong-password':
+        case 'auth/invalid-credential':
           errorMessage = 'Неверный пароль';
           break;
         case 'auth/invalid-email':
           errorMessage = 'Некорректный email адрес';
+          break;
+        case 'auth/user-disabled':
+          errorMessage = 'Аккаунт заблокирован';
           break;
         case 'auth/too-many-requests':
           errorMessage = 'Слишком много попыток. Попробуйте позже';
@@ -95,16 +114,50 @@ const LoginPage: React.FC = () => {
       }
       
       setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
+    setIsLoading(true);
     try {
       await signInWithGoogle();
+      console.log('Вход через Google выполнен успешно');
       redirectAfterLogin();
     } catch (err: any) {
-      setError('Ошибка входа через Google: ' + err.message);
+      console.error('Google login error:', err);
+      let errorMessage = 'Ошибка входа через Google';
+      
+      switch (err.code) {
+        case 'auth/popup-closed-by-user':
+          errorMessage = 'Окно входа было закрыто';
+          break;
+        case 'auth/popup-blocked':
+          errorMessage = 'Всплывающее окно заблокировано браузером';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Ошибка сети. Проверьте подключение к интернету';
+          break;
+        default:
+          errorMessage = 'Ошибка входа через Google: ' + (err.message || 'Неизвестная ошибка');
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  // Обработчики изменения полей с валидацией
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    validateEmail(value);
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    validatePassword(value);
   };
 
   return (
@@ -141,22 +194,24 @@ const LoginPage: React.FC = () => {
                   <IonIcon icon={mailOutline} className="input-icon" />
                   <IonInput
                     value={email}
-                    onIonChange={(e) => setEmail(e.detail.value || '')}
+                    onIonChange={(e) => handleEmailChange(e.detail.value || '')}
                     placeholder="Email"
                     type="email"
                     className="w-full rounded-xl py-4 pl-12 pr-4 font-montserrat"
                   />
+                  {emailError && <p className="text-red-500 text-xs mt-1 font-montserrat">{emailError}</p>}
                 </div>
 
                 <div className="relative">
                   <IonIcon icon={lockClosedOutline} className="input-icon" />
                   <IonInput
                     value={password}
-                    onIonChange={(e) => setPassword(e.detail.value || '')}
+                    onIonChange={(e) => handlePasswordChange(e.detail.value || '')}
                     placeholder="Пароль"
                     type="password"
                     className="w-full rounded-xl py-4 pl-12 pr-4 font-montserrat"
                   />
+                  {passwordError && <p className="text-red-500 text-xs mt-1 font-montserrat">{passwordError}</p>}
                 </div>
 
                 {error && <p className="text-red-500 text-sm font-montserrat">{error}</p>}
@@ -164,18 +219,21 @@ const LoginPage: React.FC = () => {
                 <IonButton
                   expand="block"
                   onClick={handleLogin}
+                  disabled={isLoading || !!emailError || !!passwordError}
                   className="custom-button rounded-xl shadow-lg text-base font-montserrat h-14 w-full"
                 >
-                  Войти
+                  {isLoading ? 'Вход...' : 'Войти'}
                 </IonButton>
 
                 <IonButton
                   expand="block"
                   onClick={handleGoogleLogin}
                   fill="outline"
+                  disabled={isLoading}
                   className="google-button rounded-xl shadow-lg text-base font-montserrat h-14 w-full"
                 >
-                  <IonIcon icon={logoGoogle} className="mr-2" /> Войти через Google
+                  <IonIcon icon={logoGoogle} className="mr-2" /> 
+                  {isLoading ? 'Вход...' : 'Войти через Google'}
                 </IonButton>
               </div>
             </div>
@@ -191,6 +249,12 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
       </IonContent>
+      
+      <IonLoading
+        isOpen={isLoading}
+        message="Выполняется вход..."
+      />
+      
       <IonFooter>
         <IonTabBar slot="bottom" className="bg-white dark:bg-gray-800 shadow-md">
           <IonTabButton tab="home" onClick={goToHome}>
