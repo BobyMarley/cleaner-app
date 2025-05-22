@@ -1,0 +1,919 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f9fafb;
+  --card-bg: #ffffff;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --accent: #6366f1;
+  --border: #e5e7eb;
+}
+
+.dark {
+  --background: #111827;
+  --card-bg: #1f2937;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --accent: #818cf8;
+  --border: #374151;
+}
+
+body {
+  margin: 0;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease;
+}
+
+ion-content {
+  --background: var(--background);
+}
+
+ion-button {
+  --background: linear-gradient(to right, #6366f1, #8b5cf6);
+  --background-activated: linear-gradient(to right, #4f46e5, #7c3aed);
+  --color: rgba(255, 255, 255, 0.95);
+  --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --transition: all 0.3s ease;
+  --border-radius: 12px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+}
+
+/* Custom button style */
+ion-button.custom-button {
+  --color: rgba(255, 255, 255, 1);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+ion-button.custom-button:hover {
+  --background: linear-gradient(to right, #4f46e5, #7c3aed);
+  --box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2);
+}
+
+/* Google button style */
+ion-button.google-button {
+  --background: #ffffff !important;
+  --color: #4285f4 !important;
+  --border-color: #4285f4 !important;
+  --border-width: 2px !important;
+  --border-style: solid !important;
+  font-weight: 500;
+}
+
+ion-button.google-button:hover {
+  --background: #f8faff !important;
+  --color: #3367d6 !important;
+  --border-color: #3367d6 !important;
+  --box-shadow: 0 2px 8px rgba(66, 133, 244, 0.15) !important;
+}
+
+.dark ion-button.google-button {
+  --background: #1f2937 !important;
+  --color: #60a5fa !important;
+  --border-color: #60a5fa !important;
+}
+
+.dark ion-button.google-button:hover {
+  --background: #374151 !important;
+  --color: #93c5fd !important;
+  --border-color: #93c5fd !important;
+}
+
+/* Counter button style */
+ion-button.counter-button {
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+ion-button.counter-button .button-native {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Custom icon size for counter buttons */
+ion-button.counter-button .custom-icon {
+  font-size: 28px !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+
+/* Card styles */
+ion-card {
+  --background: var(--card-bg);
+  --color: var(--text-primary);
+  border-radius: 16px;
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+ion-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Custom search bar */
+.ion-searchbar-custom {
+  --background: var(--card-bg);
+  --color: var(--text-primary);
+  --placeholder-color: var(--text-secondary);
+  --icon-color: var(--accent);
+  --clear-button-color: var(--text-secondary);
+  --border-radius: 12px;
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 4px;
+}
+
+/* Toolbar and tab bar styling */
+ion-toolbar, ion-tab-bar {
+  --background: var(--card-bg);
+  --border-color: transparent;
+  --min-height: 60px;
+}
+
+ion-tab-button {
+  --color: var(--text-secondary);
+  --color-selected: var(--accent);
+  font-weight: 500;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+ion-tab-button:hover {
+  --background: rgba(99, 102, 241, 0.1);
+  --color: var(--accent);
+}
+
+/* Typography and spacing utilities */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  line-height: 1.2;
+}
+
+p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+/* Utility for dark mode transition */
+* {
+  transition-property: color, background-color, border-color, fill;
+  transition-duration: 0.3s;
+  transition-timing-function: ease;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+ion-input {
+  --padding-start: 48px !important;
+  --padding-end: 16px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  --background: #ffffff !important;
+  --color: #000000 !important;
+  --border-radius: 12px;
+  --placeholder-color: #6b7280 !important;
+  --highlight-color-focused: transparent !important;
+  --highlight-color-valid: transparent !important;
+  --highlight-color-invalid: transparent !important;
+  box-sizing: border-box;
+  border: 1px solid #e5e7eb !important;
+  background: transparent !important;
+}
+
+/* Убираем все лишние стили Ionic - более агрессивно */
+ion-input .native-input {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+ion-input .input-wrapper {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+ion-input .input-wrapper input {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Убираем все возможные подсветки */
+ion-input::part(native) {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+ion-input .sc-ion-input-md-h,
+ion-input .sc-ion-input-ios-h {
+  --highlight-height: 0px !important;
+  --highlight-color-focused: transparent !important;
+  --highlight-color-valid: transparent !important;
+  --highlight-color-invalid: transparent !important;
+}
+
+/* Стили для темной темы */
+.dark ion-input {
+  --background: #374151 !important;
+  --color: #ffffff !important;
+  --placeholder-color: #9ca3af !important;
+  border: 1px solid #4b5563 !important;
+}
+
+.dark ion-input .input-wrapper {
+  background: #374151 !important;
+  border: 1px solid #4b5563 !important;
+}
+
+.dark ion-input .input-wrapper input {
+  background: transparent !important;
+  color: #ffffff !important;
+}
+
+/* Стили для фокусировки */
+ion-input:focus-within,
+ion-input.ion-focused {
+  --border-color: #6366f1 !important;
+  --box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  border-color: #6366f1 !important;
+}
+
+ion-input:focus-within .input-wrapper,
+ion-input.ion-focused .input-wrapper {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+}
+
+.dark ion-input:focus-within,
+.dark ion-input.ion-focused {
+  --background: #4b5563 !important;
+  border-color: #818cf8 !important;
+}
+
+.dark ion-input:focus-within .input-wrapper,
+.dark ion-input.ion-focused .input-wrapper {
+  background: #4b5563 !important;
+  border-color: #818cf8 !important;
+}
+
+/* Стили для иконок внутри полей ввода */
+.input-icon {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  color: #6366f1;
+  font-size: 20px;
+  z-index: 10;
+}
+
+.dark .input-icon {
+  color: #818cf8;
+}
+
+/* Стили для карусели дат */
+.date-selector-container {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.date-selector-container::-webkit-scrollbar {
+  display: none;
+}
+
+.date-card {
+  transition: all 0.2s ease;
+}
+
+.date-card:hover {
+  transform: translateY(-2px);
+}
+
+.date-card.selected {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+/* Стили для кнопок в календаре */
+.calendar-button {
+  --background: var(--card-bg);
+  --color: var(--text-primary);
+  --border-radius: 12px;
+  --border-width: 1px;
+  --border-style: solid;
+  --border-color: var(--border);
+  --box-shadow: none;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+}
+
+.calendar-button.active {
+  --background: var(--accent);
+  --color: white;
+  --border-color: var(--accent);
+  --box-shadow: 0 2px 6px rgba(99, 102, 241, 0.2);
+}
+
+/* Обновленные стили для отображения выбранной даты */
+.selected-date-display {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background-color: var(--accent, #6366f1);
+  background-opacity: 0.1;
+  border-radius: 12px;
+  margin-top: 16px;
+}
+
+.selected-date-display ion-icon {
+  font-size: 20px;
+  margin-right: 12px;
+  color: var(--accent, #6366f1);
+}
+
+.selected-date-display .date-label {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  margin-bottom: 2px;
+}
+
+.selected-date-display .date-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+}
+
+/* Стили для тёмной темы */
+.dark .selected-date-display {
+  background-color: rgba(99, 102, 241, 0.2);
+}
+
+.dark .selected-date-display .date-label {
+  color: var(--text-secondary, #9ca3af);
+}
+
+.dark .selected-date-display .date-value {
+  color: var(--text-primary, #f9fafb);
+}
+
+/* Дополнительные стили для фиксированного нижнего footer с кнопкой */
+.fixed-bottom-button {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  background-color: var(--card-bg);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+  z-index: 100;
+}
+
+.has-footer-button {
+  padding-bottom: 80px;
+}
+
+/* Стили для анимации загрузки */
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+
+.loading-pulse {
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* Стили для всплывающих уведомлений */
+ion-alert.custom-alert {
+  --backdrop-opacity: 0.6;
+}
+
+ion-alert.custom-alert .alert-wrapper {
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+ion-alert.custom-alert .alert-head h2 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+ion-alert.custom-alert .alert-message {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+ion-alert.custom-alert .alert-button-group {
+  padding: 12px;
+}
+
+ion-alert.custom-alert .alert-button {
+  border-radius: 12px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 16px;
+}
+
+ion-alert.custom-alert .alert-button.primary {
+  background: linear-gradient(to right, #6366f1, #8b5cf6);
+  color: white;
+}
+
+ion-alert.custom-alert .alert-button.secondary {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+.dark ion-alert.custom-alert .alert-button.secondary {
+  background-color: #374151;
+  color: #f9fafb;
+}
+
+/* Улучшенные стили для вкладок */
+.custom-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 8px 4px;
+  margin: 0 -4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.custom-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.custom-tab {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  margin: 0 4px;
+  border-radius: 999px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.custom-tab.active {
+  background-color: var(--accent);
+  color: white;
+}
+
+.custom-tab:not(.active) {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.dark .custom-tab:not(.active) {
+  background-color: #374151;
+  color: #d1d5db;
+}
+
+/* Стили для аватара профиля */
+.profile-avatar-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+}
+
+.profile-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.dark .profile-avatar {
+  border-color: #1f2937;
+}
+
+.avatar-upload-button {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(to right, #6366f1, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.avatar-upload-button ion-icon {
+  color: white;
+  font-size: 20px;
+}
+
+.avatar-upload-input {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* КАЛЕНДАРЬ - МОДАЛЬНЫЕ ОКНА */
+.date-picker-modal {
+  --width: 95%;
+  --max-width: 480px;
+  --height: 85%;
+  --max-height: 90vh;
+  --border-radius: 20px;
+  --backdrop-opacity: 0.6;
+  --box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.date-picker-modal::part(content) {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Enhanced segment buttons */
+.custom-segment {
+  --background: rgba(99, 102, 241, 0.05);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.segment-button {
+  --background-checked: #6366f1;
+  --color-checked: white;
+  --color: #6b7280;
+  --border-radius: 8px;
+  --indicator-height: 0;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  margin: 2px;
+  min-height: 44px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.dark .segment-button {
+  --background-checked: #818cf8;
+  --color: #9ca3af;
+}
+
+.segment-button:hover {
+  --background: rgba(99, 102, 241, 0.1);
+}
+
+/* Calendar grid improvements */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  position: relative;
+}
+
+.calendar-day:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-day.today {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+  border: 2px solid rgba(99, 102, 241, 0.3);
+}
+
+.calendar-day.selected {
+  background: #6366f1;
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+}
+
+.dark .calendar-day.today {
+  background: rgba(129, 140, 248, 0.2);
+  color: #818cf8;
+  border-color: rgba(129, 140, 248, 0.4);
+}
+
+.dark .calendar-day.selected {
+  background: #818cf8;
+}
+
+/* Time slot improvements */
+.time-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.time-slot {
+  padding: 16px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dark .time-slot {
+  background: #1f2937;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.time-slot:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.15);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.time-slot.selected {
+  background: #6366f1;
+  color: white;
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+}
+
+.dark .time-slot.selected {
+  background: #818cf8;
+}
+
+/* Quick select date cards */
+.quick-date-card {
+  flex-shrink: 0;
+  padding: 16px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: max-content;
+  text-align: center;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.dark .quick-date-card {
+  background: #1f2937;
+}
+
+.quick-date-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.quick-date-card.selected {
+  background: #6366f1;
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.25);
+}
+
+.dark .quick-date-card.selected {
+  background: #818cf8;
+}
+
+/* Header improvements */
+.modal-header {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dark .modal-header {
+  background: #1f2937;
+  border-bottom-color: #374151;
+}
+
+.modal-title {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: #1e293b;
+  margin: 0;
+}
+
+.dark .modal-title {
+  color: #f9fafb;
+}
+
+/* Content area improvements */
+.modal-content {
+  flex: 1;
+  padding: 24px;
+  background: #f9fafb;
+  overflow-y: auto;
+}
+
+.dark .modal-content {
+  background: #111827;
+}
+
+/* Selected date display card */
+.selected-date-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+}
+
+.dark .selected-date-card {
+  background: #1f2937;
+}
+
+.selected-date-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  font-size: 24px;
+  color: #6366f1;
+}
+
+.dark .selected-date-icon {
+  background: rgba(129, 140, 248, 0.2);
+  color: #818cf8;
+}
+
+/* Empty state improvements */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.dark .empty-state {
+  background: #1f2937;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  color: #9ca3af;
+  margin-bottom: 16px;
+}
+
+.dark .empty-state-icon {
+  color: #6b7280;
+}
+
+.empty-state-text {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 16px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.dark .empty-state-text {
+  color: #9ca3af;
+}
+
+/* Animation enhancements */
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.date-picker-modal .modal-wrapper {
+  animation: modalSlideUp 0.3s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.calendar-day,
+.time-slot,
+.quick-date-card {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .date-picker-modal {
+    --width: 95%;
+    --height: 90%;
+  }
+  
+  .modal-content {
+    padding: 16px;
+  }
+  
+  .modal-header {
+    padding: 16px;
+  }
+  
+  .calendar-grid {
+    gap: 6px;
+  }
+  
+  .time-slot-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  
+  .quick-date-card {
+    padding: 12px;
+    min-width: 140px;
+  }
+}
+
+/* iOS specific improvements */
+@supports (-webkit-touch-callout: none) {
+  .date-picker-modal {
+    --border-radius: 20px 20px 0 0;
+  }
+  
+  .modal-header {
+    padding-top: max(24px, env(safe-area-inset-top));
+  }
+}
