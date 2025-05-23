@@ -1,4 +1,4 @@
-// OrderForm.tsx - ОБНОВЛЕННАЯ ВЕРСИЯ С УЛУЧШЕННЫМ КАЛЕНДАРЕМ
+// OrderForm.tsx - ОБНОВЛЕННАЯ ВЕРСИЯ С ОБЯЗАТЕЛЬНЫМ ПОЛЕМ АДРЕСА
 import React, { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { 
   IonButton, 
@@ -44,7 +44,9 @@ import {
   personOutline,
   lockClosedOutline,
   calendarOutline,
-  chatbubbleOutline
+  chatbubbleOutline,
+  locationOutline,
+  warningOutline
 } from 'ionicons/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -62,6 +64,10 @@ const OrderForm: React.FC = () => {
   const [additionalInfo, setAdditionalInfo] = useState<string>('');
   const [images, setImages] = useState<File[]>([]);
   const [scheduledDate, setScheduledDate] = useState<string>('');
+  
+  // НОВОЕ ПОЛЕ - АДРЕС (ОБЯЗАТЕЛЬНОЕ)
+  const [address, setAddress] = useState<string>('');
+  const [addressError, setAddressError] = useState<string>('');
   
   // UI состояния
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -99,6 +105,24 @@ const OrderForm: React.FC = () => {
   const goToLogin = () => navigate('/login');
   const goToProfile = () => navigate('/profile');
 
+  // Валидация адреса
+  const validateAddress = (value: string): string => {
+    if (!value.trim()) {
+      return 'Адрес обязателен для заполнения';
+    }
+    if (value.trim().length < 10) {
+      return 'Адрес должен содержать минимум 10 символов';
+    }
+    return '';
+  };
+
+  // Обработка изменения адреса
+  const handleAddressChange = (value: string) => {
+    setAddress(value);
+    const error = validateAddress(value);
+    setAddressError(error);
+  };
+
   // Обработка отправки формы
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -121,6 +145,15 @@ const OrderForm: React.FC = () => {
       return;
     }
 
+    // ВАЛИДАЦИЯ АДРЕСА
+    const addressValidationError = validateAddress(address);
+    if (addressValidationError) {
+      setAddressError(addressValidationError);
+      setActiveTab('additional'); // Переключаемся на вкладку с адресом
+      window.alert('Пожалуйста, укажите корректный адрес заказа');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -139,7 +172,9 @@ const OrderForm: React.FC = () => {
         images: images ? images.map(file => file.name) : [],
         price: calculatePrice(),
         estimatedTime: calculateTime(),
-        status: 'pending'
+        status: 'pending',
+        // ДОБАВЛЯЕМ АДРЕС В ЗАКАЗ
+        address: address.trim()
       };
 
       // Добавляем дату если выбрана
@@ -251,6 +286,13 @@ const OrderForm: React.FC = () => {
     });
   };
 
+  // Проверка готовности формы
+  const isFormReady = () => {
+    const hasItems = carpetArea || chairCount > 0 || armchairCount > 0 || sofaCount > 0 || mattressCount > 0;
+    const hasValidAddress = address.trim().length >= 10;
+    return hasItems && hasValidAddress;
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-[#f1f5f9] to-[#ddd6fe] dark:from-[#1e293b] dark:to-[#312e81]">
@@ -350,9 +392,9 @@ const OrderForm: React.FC = () => {
             <h3 className="font-montserrat font-semibold text-lg text-[#1e293b] dark:text-gray-200">
               Сводка заказа
             </h3>
-            <IonChip className="font-montserrat bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-              <IonIcon icon={checkmarkCircleOutline} className="mr-1" />
-              Готов к отправке
+            <IonChip className={`font-montserrat ${isFormReady() ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'}`}>
+              <IonIcon icon={isFormReady() ? checkmarkCircleOutline : warningOutline} className="mr-1" />
+              {isFormReady() ? 'Готов к отправке' : 'Требуется адрес'}
             </IonChip>
           </div>
 
@@ -371,6 +413,22 @@ const OrderForm: React.FC = () => {
                 <p className="text-sm font-medium text-[#1e293b] dark:text-gray-200 font-montserrat">{calculatePrice()}</p>
               </div>
             </div>
+          </div>
+
+          {/* Индикатор адреса */}
+          <div className="flex items-center p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg mt-3">
+            <IonIcon icon={locationOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl mr-2" />
+            <div className="flex-1">
+              <p className="text-xs text-[#475569] dark:text-gray-400 font-montserrat">Адрес</p>
+              <p className="text-sm font-medium text-[#1e293b] dark:text-gray-200 font-montserrat">
+                {address ? address.substring(0, 30) + (address.length > 30 ? '...' : '') : 'Не указан'}
+              </p>
+            </div>
+            {!address && (
+              <IonChip className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 text-xs">
+                Обязательно
+              </IonChip>
+            )}
           </div>
         </IonCardContent>
       </IonCard>
@@ -449,7 +507,11 @@ const OrderForm: React.FC = () => {
           { key: 'furniture', label: 'Мебель' },
           { key: 'carpet', label: 'Ковры' },
           { key: 'mattress', label: 'Матрасы' },
-          { key: 'additional', label: scheduledDate ? '📅 Дата & Инфо' : '📅 Дата & Инфо' }
+          { 
+            key: 'additional', 
+            label: address ? '📅📍 Дата & Адрес' : '❗📍 Дата & Адрес',
+            hasAlert: !address
+          }
         ].map((tab) => (
           <button
             key={tab.key}
@@ -461,7 +523,7 @@ const OrderForm: React.FC = () => {
             }`}
           >
             {tab.label}
-            {tab.key === 'additional' && !scheduledDate && (
+            {tab.hasAlert && (
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
             )}
           </button>
@@ -485,7 +547,7 @@ const OrderForm: React.FC = () => {
                       Диваны
                     </h3>
                     <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                      ~1.5 часа на диван (2900zł)
+                      ~1.5 часа на диван (180zł)
                     </p>
                   </div>
                   <div className="flex items-center">
@@ -509,7 +571,7 @@ const OrderForm: React.FC = () => {
                       С подушками
                     </h3>
                     <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                      Чистка подушек и съемных элементов (+500zł)
+                      Чистка подушек и съемных элементов (+50zł)
                     </p>
                   </div>
                   <IonCheckbox checked={withPillows} onIonChange={(e) => setWithPillows(e.detail.checked)} className="text-[#6366f1] dark:text-[#818cf8]" />
@@ -529,7 +591,7 @@ const OrderForm: React.FC = () => {
                       Кресла
                     </h3>
                     <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                      ~45 минут на кресло (1200zł)
+                      ~45 минут на кресло (40zł)
                     </p>
                   </div>
                   <div className="flex items-center">
@@ -559,7 +621,7 @@ const OrderForm: React.FC = () => {
                       Стулья
                     </h3>
                     <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                      ~30 минут на стул (700zł)
+                      ~30 минут на стул (20zł)
                     </p>
                   </div>
                   <div className="flex items-center">
@@ -594,7 +656,7 @@ const OrderForm: React.FC = () => {
                         Площадь ковра
                       </h3>
                       <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                        Укажите площадь в квадратных метрах (600zł за м²)
+                        Укажите площадь в квадратных метрах (15zł за м²)
                       </p>
                     </div>
                   </div>
@@ -633,7 +695,7 @@ const OrderForm: React.FC = () => {
                       Матрасы
                     </h3>
                     <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                      ~1 час на матрас (1500zł)
+                      ~1 час на матрас (90zł)
                     </p>
                   </div>
                   <div className="flex items-center">
@@ -656,6 +718,47 @@ const OrderForm: React.FC = () => {
         {/* Вкладка "Дополнительно" */}
         {activeTab === 'additional' && (
           <div className="space-y-4">
+            {/* АДРЕС - ОБЯЗАТЕЛЬНОЕ ПОЛЕ */}
+            <IonCard className={`m-0 rounded-xl overflow-hidden shadow-md ${addressError ? 'border-2 border-red-500' : ''}`}>
+              <IonCardContent className="p-0">
+                <div className="p-4">
+                  <div className="flex items-center mb-4">
+                    <div className={`rounded-lg h-12 w-12 flex items-center justify-center mr-4 ${addressError ? 'bg-red-100 dark:bg-red-900' : 'bg-red-100 dark:bg-red-900'}`}>
+                      <IonIcon icon={locationOutline} className={`text-xl ${addressError ? 'text-red-600 dark:text-red-400' : 'text-[#6366f1] dark:text-[#818cf8]'}`} />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-base font-montserrat font-semibold text-[#1e293b] dark:text-gray-200 mb-1 flex items-center">
+                        Адрес заказа
+                        <IonChip className="ml-2 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 text-xs">
+                          Обязательно
+                        </IonChip>
+                      </h3>
+                      <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
+                        {addressError || 'Укажите полный адрес (улица, дом, квартира)'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className={`bg-gray-50 dark:bg-gray-800 rounded-xl p-3 ${addressError ? 'border-2 border-red-300 dark:border-red-700' : ''}`}>
+                    <IonTextarea
+                      value={address}
+                      onIonChange={(e) => handleAddressChange(e.detail.value || '')}
+                      placeholder="Например: ул. Краковская 15, кв. 42, Варшава"
+                      className={`text-[#1e293b] dark:text-gray-200 font-montserrat ${addressError ? 'text-red-600 dark:text-red-400' : ''}`}
+                      rows={3}
+                    />
+                  </div>
+                  
+                  {address && !addressError && (
+                    <div className="flex items-center mt-2 text-green-600 dark:text-green-400">
+                      <IonIcon icon={checkmarkCircleOutline} className="mr-2" />
+                      <span className="text-sm font-montserrat">Адрес указан корректно</span>
+                    </div>
+                  )}
+                </div>
+              </IonCardContent>
+            </IonCard>
+
             {/* Календарь - НОВЫЙ КОМПОНЕНТ */}
             <IonCard className="m-0 rounded-xl overflow-hidden shadow-md">
               <IonCardContent className="p-4">
@@ -694,7 +797,7 @@ const OrderForm: React.FC = () => {
                         Дополнительная информация
                       </h3>
                       <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                        Опишите детали заказа
+                        Опишите детали заказа и контактную информацию
                       </p>
                     </div>
                   </div>
@@ -702,7 +805,7 @@ const OrderForm: React.FC = () => {
                   <IonTextarea
                     value={additionalInfo}
                     onIonChange={(e) => setAdditionalInfo(e.detail.value || '')}
-                    placeholder="Опишите ваши пожелания, адрес и контактную информацию"
+                    placeholder="Опишите ваши пожелания, особенности доступа к объектам, контактный телефон"
                     className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 h-32 text-[#1e293b] dark:text-gray-200 font-montserrat"
                     rows={4}
                   />
@@ -761,13 +864,19 @@ const OrderForm: React.FC = () => {
           <IonButton
             type="submit"
             expand="block"
-            disabled={submitting}
+            disabled={submitting || !isFormReady()}
             className="custom-button rounded-xl shadow-md text-base font-montserrat h-12"
+            style={!isFormReady() ? { '--background': '#9ca3af' } : {}}
           >
             {submitting ? (
               <>
                 <IonSpinner className="mr-2" />
                 Создание заказа...
+              </>
+            ) : !address ? (
+              <>
+                <IonIcon icon={warningOutline} className="mr-2" />
+                Укажите адрес
               </>
             ) : (
               'Отправить заказ'

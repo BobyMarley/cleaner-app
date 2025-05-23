@@ -917,3 +917,302 @@ ion-alert.custom-alert .alert-button.secondary {
     padding-top: max(24px, env(safe-area-inset-top));
   }
 }
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+/* Стили для полей ввода с иконками */
+.relative .ion-input {
+  --padding-start: 3rem;
+  --border-radius: 0.75rem;
+  --highlight-color-focused: transparent;
+  --highlight-color-valid: transparent;
+  --highlight-color-invalid: transparent;
+}
+
+/* Переопределение стилей Ionic для лучшего контроля */
+ion-input.input-has-focus {
+  --highlight-color-focused: transparent !important;
+}
+
+ion-input.has-value {
+  --highlight-color-valid: transparent !important;
+}
+
+/* Стили для кнопки регистрации */
+.custom-button {
+  --background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --background-activated: linear-gradient(135deg, #5145e8 0%, #7c3aed 100%);
+  --background-hover: linear-gradient(135deg, #5145e8 0%, #7c3aed 100%);
+  --color: white;
+  --border-radius: 0.75rem;
+  --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --padding-top: 1rem;
+  --padding-bottom: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
+.custom-button:hover {
+  --box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+.custom-button[disabled] {
+  --background: #9ca3af;
+  --background-activated: #9ca3af;
+  --background-hover: #9ca3af;
+  --opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Стили для выпадающего списка */
+.custom-select {
+  --background: #f8fafc;
+  --color: #1e293b;
+}
+
+[data-theme="dark"] .custom-select {
+  --background: #374151;
+  --color: #f1f5f9;
+}
+
+/* Стили для индикатора силы пароля */
+.password-strength-bar {
+  height: 4px;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.password-strength-weak {
+  background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+}
+
+.password-strength-fair {
+  background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.password-strength-good {
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+}
+
+.password-strength-strong {
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+}
+
+/* Стили для требований к паролю */
+.password-requirements {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+[data-theme="dark"] .password-requirements {
+  background-color: #374151;
+  border-color: #4b5563;
+}
+
+.requirement-met {
+  color: #059669;
+}
+
+.requirement-unmet {
+  color: #dc2626;
+}
+
+[data-theme="dark"] .requirement-met {
+  color: #34d399;
+}
+
+[data-theme="dark"] .requirement-unmet {
+  color: #f87171;
+}
+
+/* Стили для сообщений об ошибках */
+.error-message {
+  color: #dc2626;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+[data-theme="dark"] .error-message {
+  color: #f87171;
+}
+
+.success-message {
+  color: #059669;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+[data-theme="dark"] .success-message {
+  color: #34d399;
+}
+
+/* Стили для границ полей */
+.input-border-error {
+  border: 2px solid #fca5a5;
+}
+
+.input-border-success {
+  border: 2px solid #86efac;
+}
+
+.input-border-default {
+  border: 2px solid #e5e7eb;
+}
+
+[data-theme="dark"] .input-border-error {
+  border-color: #f87171;
+}
+
+[data-theme="dark"] .input-border-success {
+  border-color: #34d399;
+}
+
+[data-theme="dark"] .input-border-default {
+  border-color: #4b5563;
+}
+
+/* Исправление позиционирования иконок */
+.input-icon-container {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.input-with-icon {
+  padding-left: 3rem !important;
+}
+
+/* Стили для модального окна загрузки */
+.loading-spinner {
+  --spinner-color: #6366f1;
+}
+
+/* Адаптивные стили */
+@media (max-width: 640px) {
+  .register-form {
+    padding: 1rem;
+  }
+  
+  .form-container {
+    padding: 1.5rem;
+  }
+}
+
+/* Стили для темной темы */
+[data-theme="dark"] {
+  .custom-button {
+    --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  }
+  
+  .password-requirements {
+    background-color: #374151;
+    border-color: #4b5563;
+  }
+}
+
+/* Анимация для кнопки при отправке */
+.button-loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.button-loading::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Улучшение доступности */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Фокус для клавиатурной навигации */
+ion-button:focus-visible,
+ion-input:focus-visible,
+ion-select:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Стили для предупреждающих сообщений */
+.warning-message {
+  background-color: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+[data-theme="dark"] .warning-message {
+  background-color: #451a03;
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+
+/* Стили для информационных сообщений */
+.info-message {
+  background-color: #dbeafe;
+  border: 1px solid #3b82f6;
+  color: #1e40af;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+[data-theme="dark"] .info-message {
+  background-color: #1e3a8a;
+  border-color: #3b82f6;
+  color: #93c5fd;
+}

@@ -1,4 +1,4 @@
-// services/firebase.ts - ПОЛНАЯ ВЕРСИЯ СО ВСЕМИ ФУНКЦИЯМИ
+// services/firebase.ts - ПОЛНАЯ ВЕРСИЯ С ПОЛЕМ АДРЕСА В ЗАКАЗАХ
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, doc, setDoc, getDocs, query, where, orderBy, updateDoc, getDoc, limit } from 'firebase/firestore';
 import { getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged } from 'firebase/auth';
@@ -57,6 +57,7 @@ export interface Order {
   userId: string;
   userEmail?: string;
   userName?: string;
+  address: string; // ДОБАВЛЕНО ОБЯЗАТЕЛЬНОЕ ПОЛЕ АДРЕСА
   carpetArea: string;
   chairCount: number;
   armchairCount: number;
@@ -75,10 +76,16 @@ export interface Order {
 
 export const addOrder = async (order: any) => {
   try {
+    // Валидация адреса на уровне сервиса
+    if (!order.address || order.address.trim().length < 10) {
+      throw new Error('Адрес обязателен для заполнения и должен содержать минимум 10 символов');
+    }
+
     const cleanedOrder: any = {
       userId: order.userId,
       userEmail: order.userEmail || '',
       userName: order.userName || '',
+      address: order.address.trim(), // ОБЯЗАТЕЛЬНОЕ ПОЛЕ АДРЕСА
       carpetArea: order.carpetArea || '',
       chairCount: order.chairCount || 0,
       armchairCount: order.armchairCount || 0,
