@@ -12,7 +12,8 @@ import {
   IonLabel,
   IonSearchbar,
   IonCard,
-  IonCardContent
+  IonCardContent,
+  IonSpinner
 } from '@ionic/react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -25,9 +26,14 @@ import {
   appsOutline, 
   layersOutline, 
   chatbubbleOutline, 
-  notificationsOutline 
+  notificationsOutline,
+  star,
+  starOutline,
+  arrowForwardOutline
 } from 'ionicons/icons';
-import { auth } from '../services/firebase';
+import { auth, getApprovedReviews, getAverageRating } from '../services/firebase';
+import { Review } from '../services/firebase';
+import ReviewCard from '../components/ReviewCard';
 import newLogo from '../assets/new-logo.png';
 
 const HomePage: React.FC = () => {
@@ -35,6 +41,9 @@ const HomePage: React.FC = () => {
   const location = useLocation();
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [averageRating, setAverageRating] = useState<number>(0);
+  const [loadingReviews, setLoadingReviews] = useState<boolean>(true);
 
   useEffect(() => {
     // Проверяем авторизацию
@@ -42,8 +51,27 @@ const HomePage: React.FC = () => {
       setIsAuthenticated(!!user);
     });
 
+    // Загружаем отзывы
+    loadReviews();
+
     return () => unsubscribe();
   }, []);
+
+  const loadReviews = async () => {
+    try {
+      setLoadingReviews(true);
+      const [reviewsData, avgRating] = await Promise.all([
+        getApprovedReviews(6), // Получаем 6 последних отзывов
+        getAverageRating() // Получаем средний рейтинг
+      ]);
+      setReviews(reviewsData);
+      setAverageRating(avgRating);
+    } catch (error) {
+      console.error('Ошибка при загрузке отзывов:', error);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
 
   const goToOrder = (tab: string) => {
     // Сохраняем маршрут для перенаправления после авторизации
@@ -69,10 +97,47 @@ const HomePage: React.FC = () => {
       navigate('/profile');
     }
   };
+
+  const goToReviews = () => {
+    // navigate('/reviews'); // когда будет готова отдельная страница отзывов
+  };
+
+  const goToAddReview = () => {
+    if (!isAuthenticated) {
+      sessionStorage.setItem('redirectAfterLogin', '/add-review');
+      navigate('/login');
+    } else {
+      // navigate('/add-review'); // когда будет готова страница добавления отзыва
+    }
+  };
   
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
     document.documentElement.classList.toggle('dark');
+  };
+
+  // Рендер звезд среднего рейтинга
+  const renderAverageRating = (rating: number) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    
+    for (let i = 1; i <= 5; i++) {
+      if (i <= fullStars) {
+        stars.push(
+          <IonIcon key={i} icon={star} className="text-yellow-400 text-sm" />
+        );
+      } else if (i === fullStars + 1 && hasHalfStar) {
+        stars.push(
+          <IonIcon key={i} icon={star} className="text-yellow-400 text-sm opacity-50" />
+        );
+      } else {
+        stars.push(
+          <IonIcon key={i} icon={starOutline} className="text-gray-300 dark:text-gray-600 text-sm" />
+        );
+      }
+    }
+    return stars;
   };
 
   const services = [
@@ -196,6 +261,78 @@ const HomePage: React.FC = () => {
                 </IonCard>
               ))}
             </div>
+          </div>
+
+          {/* Reviews Section */}
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-lg font-montserrat font-semibold text-gray-800 dark:text-gray-200">
+                  Отзывы клиентов
+                </h2>
+                {!loadingReviews && reviews.length > 0 && (
+                  <div className="flex items-center mt-1">
+                    <div className="flex mr-2">
+                      {renderAverageRating(averageRating)}
+                    </div>
+                    <span className="text-sm font-montserrat text-gray-600 dark:text-gray-400">
+                      {averageRating.toFixed(1)} из 5 ({reviews.length} отзывов)
+                    </span>
+                  </div>
+                )}
+              </div>
+              <IonButton 
+                fill="clear" 
+                size="small"
+                onClick={goToReviews}
+                className="text-indigo-600 dark:text-indigo-400 font-montserrat text-xs"
+              >
+                Все отзывы
+                <IonIcon icon={arrowForwardOutline} className="ml-1" />
+              </IonButton>
+            </div>
+
+            {loadingReviews ? (
+              <div className="flex justify-center py-8">
+                <IonSpinner name="crescent" className="text-indigo-600" />
+              </div>
+            ) : reviews.length > 0 ? (
+              <div className="space-y-3">
+                {reviews.slice(0, 3).map((review) => (
+                  <ReviewCard 
+                    key={review.id} 
+                    review={review} 
+                    compact={true}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6 text-center">
+                <p className="text-gray-500 dark:text-gray-400 font-montserrat text-sm mb-3">
+                  Пока нет отзывов
+                </p>
+                <IonButton 
+                  size="small"
+                  onClick={goToAddReview}
+                  className="custom-button rounded-lg text-xs font-montserrat"
+                >
+                  Оставить первый отзыв
+                </IonButton>
+              </div>
+            )}
+
+            {/* Call to action для добавления отзыва */}
+            {isAuthenticated && reviews.length > 0 && (
+              <div className="mt-4 text-center">
+                <IonButton 
+                  fill="outline"
+                  onClick={goToAddReview}
+                  className="rounded-xl text-sm font-montserrat"
+                >
+                  Оставить отзыв
+                </IonButton>
+              </div>
+            )}
           </div>
 
           {/* Book Now Button */}
