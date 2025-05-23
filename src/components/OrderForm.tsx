@@ -1,4 +1,4 @@
-// OrderForm.tsx - ОБНОВЛЕННАЯ ВЕРСИЯ С ОБЯЗАТЕЛЬНЫМ ПОЛЕМ АДРЕСА
+// OrderForm.tsx - УЛУЧШЕННАЯ ВЕРСИЯ С ЛОГИЧНОЙ СТРУКТУРОЙ
 import React, { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { 
   IonButton, 
@@ -24,7 +24,7 @@ import {
 import { addOrder, auth } from '../services/firebase';
 import { sendOrderToTelegram } from '../services/telegram';
 import { reserveDate } from '../services/calendarService';
-import UserCalendar from '../components/UserCalendar'; // Новый компонент
+import UserCalendar from '../components/UserCalendar';
 import { 
   addCircleOutline, 
   removeCircleOutline, 
@@ -46,7 +46,9 @@ import {
   calendarOutline,
   chatbubbleOutline,
   locationOutline,
-  warningOutline
+  warningOutline,
+  sparklesOutline,
+  mapOutline
 } from 'ionicons/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -64,14 +66,12 @@ const OrderForm: React.FC = () => {
   const [additionalInfo, setAdditionalInfo] = useState<string>('');
   const [images, setImages] = useState<File[]>([]);
   const [scheduledDate, setScheduledDate] = useState<string>('');
-  
-  // НОВОЕ ПОЛЕ - АДРЕС (ОБЯЗАТЕЛЬНОЕ)
   const [address, setAddress] = useState<string>('');
   const [addressError, setAddressError] = useState<string>('');
   
   // UI состояния
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>('furniture');
+  const [activeTab, setActiveTab] = useState<string>('services');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [showAuthAlert, setShowAuthAlert] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -87,7 +87,7 @@ const OrderForm: React.FC = () => {
     // Установка активной вкладки из URL
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
-    if (tab && ['furniture', 'carpet', 'mattress', 'additional'].includes(tab)) {
+    if (tab && ['services', 'location', 'details'].includes(tab)) {
       setActiveTab(tab);
     }
 
@@ -141,6 +141,7 @@ const OrderForm: React.FC = () => {
     // Проверяем что выбран хотя бы один элемент для чистки
     const hasItems = carpetArea || chairCount > 0 || armchairCount > 0 || sofaCount > 0 || mattressCount > 0;
     if (!hasItems) {
+      setActiveTab('services');
       window.alert('Пожалуйста, выберите хотя бы один элемент для чистки');
       return;
     }
@@ -149,7 +150,7 @@ const OrderForm: React.FC = () => {
     const addressValidationError = validateAddress(address);
     if (addressValidationError) {
       setAddressError(addressValidationError);
-      setActiveTab('additional'); // Переключаемся на вкладку с адресом
+      setActiveTab('location');
       window.alert('Пожалуйста, укажите корректный адрес заказа');
       return;
     }
@@ -173,7 +174,6 @@ const OrderForm: React.FC = () => {
         price: calculatePrice(),
         estimatedTime: calculateTime(),
         status: 'pending',
-        // ДОБАВЛЯЕМ АДРЕС В ЗАКАЗ
         address: address.trim()
       };
 
@@ -195,7 +195,6 @@ const OrderForm: React.FC = () => {
           console.log('Дата зарезервирована:', scheduledDate);
         } catch (dateError) {
           console.error('Ошибка при резервировании даты:', dateError);
-          // Продолжаем выполнение, показываем предупреждение
           window.alert('Заказ создан, но возникла проблема с резервированием даты. Мы свяжемся с вами для подтверждения времени.');
         }
       }
@@ -207,7 +206,6 @@ const OrderForm: React.FC = () => {
         console.log('Заказ отправлен в Telegram');
       } catch (telegramError) {
         console.error('Ошибка при отправке в Telegram:', telegramError);
-        // Продолжаем выполнение
       }
       
       // Показываем успешное сообщение
@@ -216,7 +214,7 @@ const OrderForm: React.FC = () => {
         : 'Заказ успешно создан! Мы свяжемся с вами для согласования времени.';
       
       window.alert(successMessage);
-      navigate('/profile'); // Перенаправляем в профиль для просмотра заказов
+      navigate('/profile');
       
     } catch (error) {
       console.error('Ошибка при создании заказа:', error);
@@ -240,7 +238,7 @@ const OrderForm: React.FC = () => {
   const calculatePrice = () => {
     let total = 0;
     total += sofaCount * 180;
-    total += sofaCount * (withPillows ? 500 : 0);
+    total += sofaCount * (withPillows ? 50 : 0);
     total += armchairCount * 40;
     total += chairCount * 20;
     total += mattressCount * 90;
@@ -291,6 +289,17 @@ const OrderForm: React.FC = () => {
     const hasItems = carpetArea || chairCount > 0 || armchairCount > 0 || sofaCount > 0 || mattressCount > 0;
     const hasValidAddress = address.trim().length >= 10;
     return hasItems && hasValidAddress;
+  };
+
+  // Подсчет количества услуг
+  const getServicesCount = () => {
+    let count = 0;
+    if (sofaCount > 0) count++;
+    if (armchairCount > 0) count++;
+    if (chairCount > 0) count++;
+    if (mattressCount > 0) count++;
+    if (carpetArea && parseFloat(carpetArea) > 0) count++;
+    return count;
   };
 
   if (loading) {
@@ -372,7 +381,7 @@ const OrderForm: React.FC = () => {
               <IonButton fill="clear" onClick={goToHome} className="text-white mr-2 p-0">
                 <IonIcon icon={chevronBackOutline} className="text-xl" />
               </IonButton>
-              <span className="text-white font-montserrat text-xl font-bold tracking-tight">
+              <span className="dark:text-white font-montserrat text-xl font-bold tracking-tight">
                 Новый заказ {scheduledDate && '📅'}
               </span>
             </div>
@@ -394,11 +403,29 @@ const OrderForm: React.FC = () => {
             </h3>
             <IonChip className={`font-montserrat ${isFormReady() ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'}`}>
               <IonIcon icon={isFormReady() ? checkmarkCircleOutline : warningOutline} className="mr-1" />
-              {isFormReady() ? 'Готов к отправке' : 'Требуется адрес'}
+              {isFormReady() ? 'Готов к отправке' : 'Заполните форму'}
             </IonChip>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mb-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
+              <IonIcon icon={sparklesOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl mr-2" />
+              <div>
+                <p className="text-xs text-[#475569] dark:text-gray-400 font-montserrat">Услуги</p>
+                <p className="text-sm font-medium text-[#1e293b] dark:text-gray-200 font-montserrat">
+                  {getServicesCount() ? `${getServicesCount()} выбрано` : 'Не выбрано'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
+              <IonIcon icon={locationOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl mr-2" />
+              <div>
+                <p className="text-xs text-[#475569] dark:text-gray-400 font-montserrat">Адрес</p>
+                <p className="text-sm font-medium text-[#1e293b] dark:text-gray-200 font-montserrat">
+                  {address ? 'Указан' : 'Не указан'}
+                </p>
+              </div>
+            </div>
             <div className="flex items-center p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
               <IonIcon icon={timeOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl mr-2" />
               <div>
@@ -414,112 +441,34 @@ const OrderForm: React.FC = () => {
               </div>
             </div>
           </div>
-
-          {/* Индикатор адреса */}
-          <div className="flex items-center p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg mt-3">
-            <IonIcon icon={locationOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl mr-2" />
-            <div className="flex-1">
-              <p className="text-xs text-[#475569] dark:text-gray-400 font-montserrat">Адрес</p>
-              <p className="text-sm font-medium text-[#1e293b] dark:text-gray-200 font-montserrat">
-                {address ? address.substring(0, 30) + (address.length > 30 ? '...' : '') : 'Не указан'}
-              </p>
-            </div>
-            {!address && (
-              <IonChip className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 text-xs">
-                Обязательно
-              </IonChip>
-            )}
-          </div>
-        </IonCardContent>
-      </IonCard>
-
-      {/* КАЛЕНДАРЬ - ПРОМО БЛОК */}
-      <IonCard className="mx-4 mb-4 rounded-xl overflow-hidden shadow-lg bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200">
-        <IonCardContent className="p-4">
-          <div className="flex items-center mb-3">
-            <div className="relative">
-              <div className="bg-indigo-100 dark:bg-indigo-800 rounded-full h-12 w-12 flex items-center justify-center mr-4">
-                <IonIcon icon={calendarOutline} className="text-indigo-600 dark:text-indigo-300 text-xl" />
-              </div>
-              {!scheduledDate && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
-              )}
-            </div>
-            <div className="flex-1">
-              <h3 className="font-montserrat font-bold text-lg text-gray-800 dark:text-gray-200 mb-1">
-                📅 Забронировать дату
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 font-montserrat">
-                {scheduledDate ? 
-                  `Выбрано: ${formatSelectedDate(scheduledDate)}` : 
-                  'Выберите удобное время или мы сами свяжемся'
-                }
-              </p>
-            </div>
-            {scheduledDate && (
-              <IonChip className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                <IonIcon icon={checkmarkCircleOutline} className="mr-1" />
-                Выбрано
-              </IonChip>
-            )}
-          </div>
-
-          <div className="flex space-x-2">
-            <IonButton 
-              expand="block" 
-              fill={scheduledDate ? "outline" : "solid"}
-              onClick={() => setActiveTab('additional')}
-              className="rounded-xl h-12 font-montserrat flex-1"
-              style={!scheduledDate ? {
-                '--background': 'linear-gradient(45deg, #6366f1, #8b5cf6)',
-                '--box-shadow': '0 4px 15px rgba(99, 102, 241, 0.3)'
-              } : {}}
-            >
-              <IonIcon icon={calendarOutline} className="mr-2" />
-              {scheduledDate ? 'Изменить дату' : 'Открыть календарь'}
-            </IonButton>
-            
-            {scheduledDate && (
-              <IonButton 
-                fill="clear" 
-                onClick={() => setScheduledDate('')}
-                className="text-red-500 px-3"
-              >
-                <IonIcon icon={closeCircleOutline} />
-              </IonButton>
-            )}
-          </div>
-
-          {!scheduledDate && (
-            <div className="mt-3 flex items-center justify-center">
-              <div className="flex items-center text-xs text-indigo-600 dark:text-indigo-400 font-montserrat">
-                <div className="w-2 h-2 bg-indigo-400 rounded-full mr-2 animate-pulse"></div>
-                Нажмите для выбора даты и времени
-              </div>
-            </div>
-          )}
         </IonCardContent>
       </IonCard>
 
       {/* Навигация по вкладкам */}
-      <div className="flex flex-wrap px-4 mb-4">
+      <div className="flex px-4 mb-4 space-x-2">
         {[
-          { key: 'furniture', label: 'Мебель' },
-          { key: 'carpet', label: 'Ковры' },
-          { key: 'mattress', label: 'Матрасы' },
           { 
-            key: 'additional', 
-            label: address ? '📅📍 Дата & Адрес' : '❗📍 Дата & Адрес',
+            key: 'services', 
+            label: '🧽 Услуги',
+            hasAlert: getServicesCount() === 0
+          },
+          { 
+            key: 'location', 
+            label: '📍 Адрес и время',
             hasAlert: !address
+          },
+          { 
+            key: 'details', 
+            label: '📝 Детали'
           }
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full mr-1.5 mb-1.5 font-montserrat font-medium text-sm transition-colors relative ${
+            className={`flex-1 px-4 py-3 rounded-xl font-montserrat font-medium text-sm transition-all duration-200 relative ${
               activeTab === tab.key
-                ? 'bg-[#6366f1] text-white'
-                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                ? 'bg-[#6366f1] text-white shadow-lg scale-105'
+                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
             {tab.label}
@@ -532,330 +481,333 @@ const OrderForm: React.FC = () => {
 
       {/* Содержимое формы */}
       <form onSubmit={handleSubmit} className="px-4 pb-20">
-        {/* Вкладка "Мебель" */}
-        {activeTab === 'furniture' && (
+        {/* Вкладка "Услуги" - ВСЕ ВАРИАНТЫ ХИМЧИСТКИ */}
+        {activeTab === 'services' && (
           <div className="space-y-4">
-            {/* Диваны */}
-            <IonCard className="m-0 rounded-xl overflow-hidden shadow-md">
-              <IonCardContent className="p-0">
-                <div className="flex items-center p-4">
-                  <div className="bg-purple-100 dark:bg-purple-900 rounded-lg h-12 w-12 flex items-center justify-center mr-4">
-                    <IonIcon icon={homeOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl" />
-                  </div>
+            {/* Мебель */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md">
+              <h3 className="text-lg font-montserrat font-bold text-[#1e293b] dark:text-gray-200 mb-4 flex items-center">
+                <IonIcon icon={homeOutline} className="text-[#6366f1] mr-2" />
+                Мебель
+              </h3>
+              
+              {/* Диваны */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-3">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="text-base font-montserrat font-semibold text-[#1e293b] dark:text-gray-200 mb-1">
+                    <h4 className="font-montserrat font-semibold text-[#1e293b] dark:text-gray-200">
                       Диваны
-                    </h3>
+                    </h4>
                     <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
                       ~1.5 часа на диван (180zł)
                     </p>
                   </div>
                   <div className="flex items-center">
-                    <IonButton fill="clear" onClick={() => setSofaCount(Math.max(0, sofaCount - 1))} className="counter-button bg-[#6366f1] dark:bg-[#818cf8] h-10 w-10 mx-0 rounded-full">
-                      <IonIcon icon={removeCircleOutline} className="custom-icon text-white dark:text-gray-900" />
+                    <IonButton fill="clear" onClick={() => setSofaCount(Math.max(0, sofaCount - 1))} className="counter-button bg-[#6366f1] h-10 w-10 mx-0 rounded-full">
+                      <IonIcon icon={removeCircleOutline} className="text-white" />
                     </IonButton>
                     <span className="w-8 text-center text-lg font-montserrat font-medium text-[#1e293b] dark:text-gray-200">
                       {sofaCount}
                     </span>
-                    <IonButton fill="clear" onClick={() => setSofaCount(sofaCount + 1)} className="counter-button bg-[#6366f1] dark:bg-[#818cf8] h-10 w-10 mx-0 rounded-full">
-                      <IonIcon icon={addCircleOutline} className="custom-icon text-white dark:text-gray-900" />
+                    <IonButton fill="clear" onClick={() => setSofaCount(sofaCount + 1)} className="counter-button bg-[#6366f1] h-10 w-10 mx-0 rounded-full">
+                      <IonIcon icon={addCircleOutline} className="text-white" />
                     </IonButton>
                   </div>
                 </div>
-                <div className="flex items-center p-4 border-t border-gray-200 dark:border-gray-700">
-                  <div className="bg-green-100 dark:bg-green-900 rounded-lg h-12 w-12 flex items-center justify-center mr-4">
-                    <IonIcon icon={bedOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl" />
+                
+                {/* Подушки */}
+                {sofaCount > 0 && (
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-600">
+                    <div>
+                      <h5 className="font-montserrat font-medium text-[#1e293b] dark:text-gray-200">
+                        С подушками
+                      </h5>
+                      <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
+                        Чистка подушек (+50zł)
+                      </p>
+                    </div>
+                    <IonCheckbox checked={withPillows} onIonChange={(e) => setWithPillows(e.detail.checked)} />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-base font-montserrat font-semibold text-[#1e293b] dark:text-gray-200 mb-1">
-                      С подушками
-                    </h3>
-                    <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                      Чистка подушек и съемных элементов (+50zł)
-                    </p>
-                  </div>
-                  <IonCheckbox checked={withPillows} onIonChange={(e) => setWithPillows(e.detail.checked)} className="text-[#6366f1] dark:text-[#818cf8]" />
-                </div>
-              </IonCardContent>
-            </IonCard>
+                )}
+              </div>
 
-            {/* Кресла */}
-            <IonCard className="m-0 rounded-xl overflow-hidden shadow-md">
-              <IonCardContent className="p-0">
-                <div className="flex items-center p-4">
-                  <div className="bg-blue-100 dark:bg-blue-900 rounded-lg h-12 w-12 flex items-center justify-center mr-4">
-                    <IonIcon icon={cubeOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl" />
-                  </div>
+              {/* Кресла */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-3">
+                <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <h3 className="text-base font-montserrat font-semibold text-[#1e293b] dark:text-gray-200 mb-1">
+                    <h4 className="font-montserrat font-semibold text-[#1e293b] dark:text-gray-200">
                       Кресла
-                    </h3>
+                    </h4>
                     <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
                       ~45 минут на кресло (40zł)
                     </p>
                   </div>
                   <div className="flex items-center">
-                    <IonButton fill="clear" onClick={() => setArmchairCount(Math.max(0, armchairCount - 1))} className="counter-button bg-[#6366f1] dark:bg-[#818cf8] h-10 w-10 mx-0 rounded-full">
-                      <IonIcon icon={removeCircleOutline} className="custom-icon text-white dark:text-gray-900" />
+                    <IonButton fill="clear" onClick={() => setArmchairCount(Math.max(0, armchairCount - 1))} className="counter-button bg-[#6366f1] h-10 w-10 mx-0 rounded-full">
+                      <IonIcon icon={removeCircleOutline} className="text-white" />
                     </IonButton>
                     <span className="w-8 text-center text-lg font-montserrat font-medium text-[#1e293b] dark:text-gray-200">
                       {armchairCount}
                     </span>
-                    <IonButton fill="clear" onClick={() => setArmchairCount(armchairCount + 1)} className="counter-button bg-[#6366f1] dark:bg-[#818cf8] h-10 w-10 mx-0 rounded-full">
-                      <IonIcon icon={addCircleOutline} className="custom-icon text-white dark:text-gray-900" />
+                    <IonButton fill="clear" onClick={() => setArmchairCount(armchairCount + 1)} className="counter-button bg-[#6366f1] h-10 w-10 mx-0 rounded-full">
+                      <IonIcon icon={addCircleOutline} className="text-white" />
                     </IonButton>
                   </div>
                 </div>
-              </IonCardContent>
-            </IonCard>
+              </div>
 
-            {/* Стулья */}
-            <IonCard className="m-0 rounded-xl overflow-hidden shadow-md">
-              <IonCardContent className="p-0">
-                <div className="flex items-center p-4">
-                  <div className="bg-indigo-100 dark:bg-indigo-900 rounded-lg h-12 w-12 flex items-center justify-center mr-4">
-                    <IonIcon icon={gridOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl" />
-                  </div>
+              {/* Стулья */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <h3 className="text-base font-montserrat font-semibold text-[#1e293b] dark:text-gray-200 mb-1">
+                    <h4 className="font-montserrat font-semibold text-[#1e293b] dark:text-gray-200">
                       Стулья
-                    </h3>
+                    </h4>
                     <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
                       ~30 минут на стул (20zł)
                     </p>
                   </div>
                   <div className="flex items-center">
-                    <IonButton fill="clear" onClick={() => setChairCount(Math.max(0, chairCount - 1))} className="counter-button bg-[#6366f1] dark:bg-[#818cf8] h-10 w-10 mx-0 rounded-full">
-                      <IonIcon icon={removeCircleOutline} className="custom-icon text-white dark:text-gray-900" />
+                    <IonButton fill="clear" onClick={() => setChairCount(Math.max(0, chairCount - 1))} className="counter-button bg-[#6366f1] h-10 w-10 mx-0 rounded-full">
+                      <IonIcon icon={removeCircleOutline} className="text-white" />
                     </IonButton>
                     <span className="w-8 text-center text-lg font-montserrat font-medium text-[#1e293b] dark:text-gray-200">
                       {chairCount}
                     </span>
-                    <IonButton fill="clear" onClick={() => setChairCount(chairCount + 1)} className="counter-button bg-[#6366f1] dark:bg-[#818cf8] h-10 w-10 mx-0 rounded-full">
-                      <IonIcon icon={addCircleOutline} className="custom-icon text-white dark:text-gray-900" />
+                    <IonButton fill="clear" onClick={() => setChairCount(chairCount + 1)} className="counter-button bg-[#6366f1] h-10 w-10 mx-0 rounded-full">
+                      <IonIcon icon={addCircleOutline} className="text-white" />
                     </IonButton>
                   </div>
                 </div>
-              </IonCardContent>
-            </IonCard>
-          </div>
-        )}
+              </div>
+            </div>
 
-        {/* Вкладка "Ковры" */}
-        {activeTab === 'carpet' && (
-          <div className="space-y-4">
-            <IonCard className="m-0 rounded-xl overflow-hidden shadow-md">
-              <IonCardContent className="p-0">
-                <div className="p-4">
-                  <div className="flex items-center mb-4">
-                    <div className="bg-blue-100 dark:bg-blue-900 rounded-lg h-12 w-12 flex items-center justify-center mr-4">
-                      <IonIcon icon={bedOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-montserrat font-semibold text-[#1e293b] dark:text-gray-200 mb-1">
-                        Площадь ковра
-                      </h3>
-                      <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                        Укажите площадь в квадратных метрах (15zł за м²)
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
-                    <IonInput
-                      type="number"
-                      value={carpetArea}
-                      onIonChange={(e) => setCarpetArea(e.detail.value || '')}
-                      placeholder="0"
-                      className="text-center text-xl font-montserrat font-semibold text-[#1e293b] dark:text-gray-200"
-                    />
-                    <div className="flex justify-center mt-2">
-                      <span className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                        м²
-                      </span>
-                    </div>
+            {/* Ковры */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md">
+              <h3 className="text-lg font-montserrat font-bold text-[#1e293b] dark:text-gray-200 mb-4 flex items-center">
+                <IonIcon icon={gridOutline} className="text-[#6366f1] mr-2" />
+                Ковры
+              </h3>
+              
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h4 className="font-montserrat font-semibold text-[#1e293b] dark:text-gray-200">
+                      Площадь ковра
+                    </h4>
+                    <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
+                      Укажите площадь в м² (15zł за м²)
+                    </p>
                   </div>
                 </div>
-              </IonCardContent>
-            </IonCard>
-          </div>
-        )}
-
-        {/* Вкладка "Матрасы" */}
-        {activeTab === 'mattress' && (
-          <div className="space-y-4">
-            <IonCard className="m-0 rounded-xl overflow-hidden shadow-md">
-              <IonCardContent className="p-0">
-                <div className="flex items-center p-4">
-                  <div className="bg-blue-100 dark:bg-blue-900 rounded-lg h-12 w-12 flex items-center justify-center mr-4">
-                    <IonIcon icon={bedOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl" />
+                
+                <div className="bg-white dark:bg-gray-600 rounded-lg p-3">
+                  <IonInput
+                    type="number"
+                    value={carpetArea}
+                    onIonChange={(e) => setCarpetArea(e.detail.value || '')}
+                    placeholder="0"
+                    className="text-center text-xl font-montserrat font-semibold text-[#1e293b] dark:text-gray-200"
+                  />
+                  <div className="flex justify-center mt-1">
+                    <span className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
+                      м²
+                    </span>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Матрасы */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md">
+              <h3 className="text-lg font-montserrat font-bold text-[#1e293b] dark:text-gray-200 mb-4 flex items-center">
+                <IonIcon icon={bedOutline} className="text-[#6366f1] mr-2" />
+                Матрасы
+              </h3>
+              
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <h3 className="text-base font-montserrat font-semibold text-[#1e293b] dark:text-gray-200 mb-1">
+                    <h4 className="font-montserrat font-semibold text-[#1e293b] dark:text-gray-200">
                       Матрасы
-                    </h3>
+                    </h4>
                     <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
                       ~1 час на матрас (90zł)
                     </p>
                   </div>
                   <div className="flex items-center">
-                    <IonButton fill="clear" onClick={() => setMattressCount(Math.max(0, mattressCount - 1))} className="counter-button bg-[#6366f1] dark:bg-[#818cf8] h-10 w-10 mx-0 rounded-full">
-                      <IonIcon icon={removeCircleOutline} className="custom-icon text-white dark:text-gray-900" />
+                    <IonButton fill="clear" onClick={() => setMattressCount(Math.max(0, mattressCount - 1))} className="counter-button bg-[#6366f1] h-10 w-10 mx-0 rounded-full">
+                      <IonIcon icon={removeCircleOutline} className="text-white" />
                     </IonButton>
                     <span className="w-8 text-center text-lg font-montserrat font-medium text-[#1e293b] dark:text-gray-200">
                       {mattressCount}
                     </span>
-                    <IonButton fill="clear" onClick={() => setMattressCount(mattressCount + 1)} className="counter-button bg-[#6366f1] dark:bg-[#818cf8] h-10 w-10 mx-0 rounded-full">
-                      <IonIcon icon={addCircleOutline} className="custom-icon text-white dark:text-gray-900" />
+                    <IonButton fill="clear" onClick={() => setMattressCount(mattressCount + 1)} className="counter-button bg-[#6366f1] h-10 w-10 mx-0 rounded-full">
+                      <IonIcon icon={addCircleOutline} className="text-white" />
                     </IonButton>
                   </div>
                 </div>
-              </IonCardContent>
-            </IonCard>
-          </div>
-        )}
+              </div>
+            </div>
 
-        {/* Вкладка "Дополнительно" */}
-        {activeTab === 'additional' && (
-          <div className="space-y-4">
-            {/* АДРЕС - ОБЯЗАТЕЛЬНОЕ ПОЛЕ */}
-            <IonCard className={`m-0 rounded-xl overflow-hidden shadow-md ${addressError ? 'border-2 border-red-500' : ''}`}>
-              <IonCardContent className="p-0">
-                <div className="p-4">
-                  <div className="flex items-center mb-4">
-                    <div className={`rounded-lg h-12 w-12 flex items-center justify-center mr-4 ${addressError ? 'bg-red-100 dark:bg-red-900' : 'bg-red-100 dark:bg-red-900'}`}>
-                      <IonIcon icon={locationOutline} className={`text-xl ${addressError ? 'text-red-600 dark:text-red-400' : 'text-[#6366f1] dark:text-[#818cf8]'}`} />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-base font-montserrat font-semibold text-[#1e293b] dark:text-gray-200 mb-1 flex items-center">
-                        Адрес заказа
-                        <IonChip className="ml-2 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 text-xs">
-                          Обязательно
-                        </IonChip>
-                      </h3>
-                      <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                        {addressError || 'Укажите полный адрес (улица, дом, квартира)'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className={`bg-gray-50 dark:bg-gray-800 rounded-xl p-3 ${addressError ? 'border-2 border-red-300 dark:border-red-700' : ''}`}>
-                    <IonTextarea
-                      value={address}
-                      onIonChange={(e) => handleAddressChange(e.detail.value || '')}
-                      placeholder="Например: ул. Краковская 15, кв. 42, Варшава"
-                      className={`text-[#1e293b] dark:text-gray-200 font-montserrat ${addressError ? 'text-red-600 dark:text-red-400' : ''}`}
-                      rows={3}
-                    />
-                  </div>
-                  
-                  {address && !addressError && (
-                    <div className="flex items-center mt-2 text-green-600 dark:text-green-400">
-                      <IonIcon icon={checkmarkCircleOutline} className="mr-2" />
-                      <span className="text-sm font-montserrat">Адрес указан корректно</span>
-                    </div>
-                  )}
-                </div>
-              </IonCardContent>
-            </IonCard>
-
-            {/* Календарь - НОВЫЙ КОМПОНЕНТ */}
-            <IonCard className="m-0 rounded-xl overflow-hidden shadow-md">
-              <IonCardContent className="p-4">
-                <div className="flex items-center mb-4">
-                  <div className="bg-blue-100 dark:bg-blue-900 rounded-lg h-12 w-12 flex items-center justify-center mr-4">
-                    <IonIcon icon={calendarOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl" />
-                  </div>
+            {/* Подсказка */}
+            {getServicesCount() === 0 && (
+              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl p-4">
+                <div className="flex items-center">
+                  <IonIcon icon={sparklesOutline} className="text-blue-500 text-xl mr-3" />
                   <div>
-                    <h3 className="text-base font-montserrat font-semibold text-[#1e293b] dark:text-gray-200 mb-1">
-                      Дата и время
-                    </h3>
-                    <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                      Выберите удобное время для предварительной записи
+                    <p className="font-montserrat font-medium text-blue-700 dark:text-blue-300">
+                      Выберите услуги для продолжения
+                    </p>
+                    <p className="text-sm font-montserrat text-blue-600 dark:text-blue-400">
+                      Укажите что нужно почистить, чтобы продолжить оформление заказа
                     </p>
                   </div>
                 </div>
-                
-                {/* Используем новый UserCalendar компонент */}
-                <UserCalendar 
-                  onDateSelect={handleDateSelect}
-                  selectedDate={scheduledDate}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Вкладка "Адрес и время" */}
+        {activeTab === 'location' && (
+          <div className="space-y-4">
+            {/* АДРЕС - ОБЯЗАТЕЛЬНОЕ ПОЛЕ */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md">
+              <h3 className="text-lg font-montserrat font-bold text-[#1e293b] dark:text-gray-200 mb-4 flex items-center">
+                <IonIcon icon={locationOutline} className="text-[#6366f1] mr-2" />
+                Адрес заказа
+                <IonChip className="ml-2 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 text-xs">
+                  Обязательно
+                </IonChip>
+              </h3>
+              
+              <div className={`bg-gray-50 dark:bg-gray-700 rounded-lg p-4 ${addressError ? 'border-2 border-red-300 dark:border-red-700' : ''}`}>
+                <IonTextarea
+                  value={address}
+                  onIonChange={(e) => handleAddressChange(e.detail.value || '')}
+                  placeholder="Например: ул. Краковская 15, кв. 42, Варшава"
+                  className={`text-[#1e293b] dark:text-gray-200 font-montserrat ${addressError ? 'text-red-600 dark:text-red-400' : ''}`}
+                  rows={3}
                 />
-              </IonCardContent>
-            </IonCard>
-
-            {/* Дополнительная информация */}
-            <IonCard className="m-0 rounded-xl overflow-hidden shadow-md">
-              <IonCardContent className="p-0">
-                <div className="p-4">
-                  <div className="flex items-center mb-4">
-                    <div className="bg-yellow-100 dark:bg-yellow-900 rounded-lg h-12 w-12 flex items-center justify-center mr-4">
-                      <IonIcon icon={documentTextOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-montserrat font-semibold text-[#1e293b] dark:text-gray-200 mb-1">
-                        Дополнительная информация
-                      </h3>
-                      <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                        Опишите детали заказа и контактную информацию
-                      </p>
-                    </div>
+                
+                {addressError && (
+                  <p className="text-red-600 dark:text-red-400 text-sm font-montserrat mt-2">
+                    {addressError}
+                  </p>
+                )}
+                
+                {address && !addressError && (
+                  <div className="flex items-center mt-2 text-green-600 dark:text-green-400">
+                    <IonIcon icon={checkmarkCircleOutline} className="mr-2" />
+                    <span className="text-sm font-montserrat">Адрес указан корректно</span>
                   </div>
+                )}
+              </div>
+            </div>
 
-                  <IonTextarea
-                    value={additionalInfo}
-                    onIonChange={(e) => setAdditionalInfo(e.detail.value || '')}
-                    placeholder="Опишите ваши пожелания, особенности доступа к объектам, контактный телефон"
-                    className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 h-32 text-[#1e293b] dark:text-gray-200 font-montserrat"
-                    rows={4}
-                  />
+            {/* Календарь */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md">
+              <h3 className="text-lg font-montserrat font-bold text-[#1e293b] dark:text-gray-200 mb-2 flex items-center">
+                <IonIcon icon={calendarOutline} className="text-[#6366f1] mr-2" />
+                Дата и время
+              </h3>
+              <p className="text-sm font-montserrat text-[#475569] dark:text-gray-400 mb-4">
+                Выберите удобное время или мы сами свяжемся с вами
+              </p>
+              
+              {scheduledDate && (
+                <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <IonIcon icon={checkmarkCircleOutline} className="text-green-600 dark:text-green-400 mr-2" />
+                      <div>
+                        <p className="font-montserrat font-medium text-green-700 dark:text-green-300">
+                          Время выбрано
+                        </p>
+                        <p className="text-sm font-montserrat text-green-600 dark:text-green-400">
+                          {formatSelectedDate(scheduledDate)}
+                        </p>
+                      </div>
+                    </div>
+                    <IonButton 
+                      fill="clear" 
+                      onClick={() => setScheduledDate('')}
+                      className="text-red-500"
+                    >
+                      <IonIcon icon={closeCircleOutline} />
+                    </IonButton>
+                  </div>
                 </div>
-              </IonCardContent>
-            </IonCard>
+              )}
+              
+              <UserCalendar 
+                onDateSelect={handleDateSelect}
+                selectedDate={scheduledDate}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Вкладка "Детали" */}
+        {activeTab === 'details' && (
+          <div className="space-y-4">
+            {/* Дополнительная информация */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md">
+              <h3 className="text-lg font-montserrat font-bold text-[#1e293b] dark:text-gray-200 mb-4 flex items-center">
+                <IonIcon icon={documentTextOutline} className="text-[#6366f1] mr-2" />
+                Дополнительная информация
+              </h3>
+              
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <IonTextarea
+                  value={additionalInfo}
+                  onIonChange={(e) => setAdditionalInfo(e.detail.value || '')}
+                  placeholder="Опишите ваши пожелания, особенности доступа к объектам, контактный телефон, специальные требования..."
+                  className="text-[#1e293b] dark:text-gray-200 font-montserrat"
+                  rows={4}
+                />
+              </div>
+            </div>
 
             {/* Фотографии */}
-            <IonCard className="m-0 rounded-xl overflow-hidden shadow-md">
-              <IonCardContent className="p-0">
-                <div className="p-4">
-                  <div className="flex items-center mb-4">
-                    <div className="bg-pink-100 dark:bg-pink-900 rounded-lg h-12 w-12 flex items-center justify-center mr-4">
-                      <IonIcon icon={imageOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-montserrat font-semibold text-[#1e293b] dark:text-gray-200 mb-1">
-                        Фотографии
-                      </h3>
-                      <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                        Прикрепите фото предметов для чистки
-                      </p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md">
+              <h3 className="text-lg font-montserrat font-bold text-[#1e293b] dark:text-gray-200 mb-4 flex items-center">
+                <IonIcon icon={imageOutline} className="text-[#6366f1] mr-2" />
+                Фотографии
+              </h3>
+              
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="cursor-pointer inline-flex items-center justify-center px-6 py-3 bg-indigo-100 dark:bg-indigo-900/50 text-[#6366f1] dark:text-[#818cf8] rounded-lg font-montserrat font-medium hover:bg-indigo-200 dark:hover:bg-indigo-900/70 transition-colors"
+                >
+                  <IonIcon icon={imageOutline} className="mr-2 text-xl" />
+                  Выбрать фотографии
+                </label>
+                {images.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-sm font-montserrat text-[#475569] dark:text-gray-400">
+                      Выбрано файлов: {images.length}
+                    </p>
+                    <div className="flex items-center justify-center mt-2">
+                      <IonIcon icon={checkmarkCircleOutline} className="text-green-500 mr-1" />
+                      <span className="text-sm font-montserrat text-green-600 dark:text-green-400">
+                        Фотографии готовы к отправке
+                      </span>
                     </div>
                   </div>
-
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                      id="file-upload"
-                    />
-                    <label
-                      htmlFor="file-upload"
-                      className="cursor-pointer inline-flex items-center justify-center px-4 py-2 bg-indigo-100 dark:bg-indigo-900/50 text-[#6366f1] dark:text-[#818cf8] rounded-lg font-montserrat text-sm font-medium"
-                    >
-                      <IonIcon icon={imageOutline} className="mr-2" />
-                      Выбрать фото
-                    </label>
-                    {images.length > 0 && (
-                      <p className="mt-2 text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                        Выбрано файлов: {images.length}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </IonCardContent>
-            </IonCard>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -865,21 +817,32 @@ const OrderForm: React.FC = () => {
             type="submit"
             expand="block"
             disabled={submitting || !isFormReady()}
-            className="custom-button rounded-xl shadow-md text-base font-montserrat h-12"
-            style={!isFormReady() ? { '--background': '#9ca3af' } : {}}
+            className={`rounded-xl shadow-md text-base font-montserrat h-12 ${
+              isFormReady() 
+                ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white' 
+                : 'bg-gray-300 dark:bg-gray-600 text-gray-500'
+            }`}
           >
             {submitting ? (
               <>
                 <IonSpinner className="mr-2" />
                 Создание заказа...
               </>
+            ) : !getServicesCount() ? (
+              <>
+                <IonIcon icon={sparklesOutline} className="mr-2" />
+                Выберите услуги
+              </>
             ) : !address ? (
               <>
-                <IonIcon icon={warningOutline} className="mr-2" />
+                <IonIcon icon={locationOutline} className="mr-2" />
                 Укажите адрес
               </>
             ) : (
-              'Отправить заказ'
+              <>
+                <IonIcon icon={checkmarkCircleOutline} className="mr-2" />
+                Отправить заказ
+              </>
             )}
           </IonButton>
         </div>

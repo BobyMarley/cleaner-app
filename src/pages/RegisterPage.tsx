@@ -501,7 +501,7 @@ const RegisterPage: React.FC<{ isWorker?: boolean }> = ({ isWorker }) => {
                   <IonSelect
                     value={role}
                     onIonChange={(e) => setRole(e.detail.value as 'client' | 'worker')}
-                    className="w-full text-[#1e293b] dark:text-white font-montserrat"
+                    className="w-full dark:text-white font-montserrat"
                     placeholder="Выберите роль"
                     interfaceOptions={{
                       header: 'Роль',
