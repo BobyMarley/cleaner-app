@@ -1,4 +1,4 @@
-// OrderForm.tsx - ОБНОВЛЕННАЯ ВЕРСИЯ С ПРОДАКШН КАЛЕНДАРЕМ
+// OrderForm.tsx - ОБНОВЛЕННАЯ ВЕРСИЯ С УЛУЧШЕННЫМ КАЛЕНДАРЕМ
 import React, { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { 
   IonButton, 
@@ -35,6 +35,7 @@ import {
   sunnyOutline, 
   moonOutline,
   checkmarkCircleOutline,
+  closeCircleOutline,
   timeOutline,
   cashOutline,
   homeOutline,
@@ -203,12 +204,12 @@ const OrderForm: React.FC = () => {
 
   const calculatePrice = () => {
     let total = 0;
-    total += sofaCount * 2900;
+    total += sofaCount * 180;
     total += sofaCount * (withPillows ? 500 : 0);
-    total += armchairCount * 1200;
-    total += chairCount * 700;
-    total += mattressCount * 1500;
-    total += parseFloat(carpetArea || '0') * 600;
+    total += armchairCount * 40;
+    total += chairCount * 20;
+    total += mattressCount * 90;
+    total += parseFloat(carpetArea || '0') * 15;
     return total === 0 ? '---' : `${total}zł`;
   };
 
@@ -236,6 +237,18 @@ const OrderForm: React.FC = () => {
 
   const handleDateSelect = (dateTime: string) => {
     setScheduledDate(dateTime);
+  };
+
+  // Функция для форматирования выбранной даты
+  const formatSelectedDate = (dateString: string) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('ru-RU', { 
+      weekday: 'long', 
+      day: 'numeric', 
+      month: 'long',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (loading) {
@@ -317,7 +330,9 @@ const OrderForm: React.FC = () => {
               <IonButton fill="clear" onClick={goToHome} className="text-white mr-2 p-0">
                 <IonIcon icon={chevronBackOutline} className="text-xl" />
               </IonButton>
-              <span className="text-white font-montserrat text-xl font-bold tracking-tight">Новый заказ</span>
+              <span className="text-white font-montserrat text-xl font-bold tracking-tight">
+                Новый заказ {scheduledDate && '📅'}
+              </span>
             </div>
             <div className="flex items-center space-x-3">
               <IonButton fill="clear" onClick={toggleDarkMode} className="text-white">
@@ -360,24 +375,95 @@ const OrderForm: React.FC = () => {
         </IonCardContent>
       </IonCard>
 
+      {/* КАЛЕНДАРЬ - ПРОМО БЛОК */}
+      <IonCard className="mx-4 mb-4 rounded-xl overflow-hidden shadow-lg bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200">
+        <IonCardContent className="p-4">
+          <div className="flex items-center mb-3">
+            <div className="relative">
+              <div className="bg-indigo-100 dark:bg-indigo-800 rounded-full h-12 w-12 flex items-center justify-center mr-4">
+                <IonIcon icon={calendarOutline} className="text-indigo-600 dark:text-indigo-300 text-xl" />
+              </div>
+              {!scheduledDate && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+              )}
+            </div>
+            <div className="flex-1">
+              <h3 className="font-montserrat font-bold text-lg text-gray-800 dark:text-gray-200 mb-1">
+                📅 Забронировать дату
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-montserrat">
+                {scheduledDate ? 
+                  `Выбрано: ${formatSelectedDate(scheduledDate)}` : 
+                  'Выберите удобное время или мы сами свяжемся'
+                }
+              </p>
+            </div>
+            {scheduledDate && (
+              <IonChip className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                <IonIcon icon={checkmarkCircleOutline} className="mr-1" />
+                Выбрано
+              </IonChip>
+            )}
+          </div>
+
+          <div className="flex space-x-2">
+            <IonButton 
+              expand="block" 
+              fill={scheduledDate ? "outline" : "solid"}
+              onClick={() => setActiveTab('additional')}
+              className="rounded-xl h-12 font-montserrat flex-1"
+              style={!scheduledDate ? {
+                '--background': 'linear-gradient(45deg, #6366f1, #8b5cf6)',
+                '--box-shadow': '0 4px 15px rgba(99, 102, 241, 0.3)'
+              } : {}}
+            >
+              <IonIcon icon={calendarOutline} className="mr-2" />
+              {scheduledDate ? 'Изменить дату' : 'Открыть календарь'}
+            </IonButton>
+            
+            {scheduledDate && (
+              <IonButton 
+                fill="clear" 
+                onClick={() => setScheduledDate('')}
+                className="text-red-500 px-3"
+              >
+                <IonIcon icon={closeCircleOutline} />
+              </IonButton>
+            )}
+          </div>
+
+          {!scheduledDate && (
+            <div className="mt-3 flex items-center justify-center">
+              <div className="flex items-center text-xs text-indigo-600 dark:text-indigo-400 font-montserrat">
+                <div className="w-2 h-2 bg-indigo-400 rounded-full mr-2 animate-pulse"></div>
+                Нажмите для выбора даты и времени
+              </div>
+            </div>
+          )}
+        </IonCardContent>
+      </IonCard>
+
       {/* Навигация по вкладкам */}
       <div className="flex flex-wrap px-4 mb-4">
         {[
           { key: 'furniture', label: 'Мебель' },
           { key: 'carpet', label: 'Ковры' },
           { key: 'mattress', label: 'Матрасы' },
-          { key: 'additional', label: 'Дополнительно' }
+          { key: 'additional', label: scheduledDate ? '📅 Дата & Инфо' : '📅 Дата & Инфо' }
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full mr-1.5 mb-1.5 font-montserrat font-medium text-sm transition-colors ${
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full mr-1.5 mb-1.5 font-montserrat font-medium text-sm transition-colors relative ${
               activeTab === tab.key
                 ? 'bg-[#6366f1] text-white'
                 : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
             }`}
           >
             {tab.label}
+            {tab.key === 'additional' && !scheduledDate && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+            )}
           </button>
         ))}
       </div>
@@ -570,6 +656,31 @@ const OrderForm: React.FC = () => {
         {/* Вкладка "Дополнительно" */}
         {activeTab === 'additional' && (
           <div className="space-y-4">
+            {/* Календарь - НОВЫЙ КОМПОНЕНТ */}
+            <IonCard className="m-0 rounded-xl overflow-hidden shadow-md">
+              <IonCardContent className="p-4">
+                <div className="flex items-center mb-4">
+                  <div className="bg-blue-100 dark:bg-blue-900 rounded-lg h-12 w-12 flex items-center justify-center mr-4">
+                    <IonIcon icon={calendarOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-montserrat font-semibold text-[#1e293b] dark:text-gray-200 mb-1">
+                      Дата и время
+                    </h3>
+                    <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
+                      Выберите удобное время для предварительной записи
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Используем новый UserCalendar компонент */}
+                <UserCalendar 
+                  onDateSelect={handleDateSelect}
+                  selectedDate={scheduledDate}
+                />
+              </IonCardContent>
+            </IonCard>
+
             {/* Дополнительная информация */}
             <IonCard className="m-0 rounded-xl overflow-hidden shadow-md">
               <IonCardContent className="p-0">
@@ -640,31 +751,6 @@ const OrderForm: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </IonCardContent>
-            </IonCard>
-
-            {/* Календарь - НОВЫЙ КОМПОНЕНТ */}
-            <IonCard className="m-0 rounded-xl overflow-hidden shadow-md">
-              <IonCardContent className="p-4">
-                <div className="flex items-center mb-4">
-                  <div className="bg-blue-100 dark:bg-blue-900 rounded-lg h-12 w-12 flex items-center justify-center mr-4">
-                    <IonIcon icon={calendarOutline} className="text-[#6366f1] dark:text-[#818cf8] text-xl" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-montserrat font-semibold text-[#1e293b] dark:text-gray-200 mb-1">
-                      Дата и время
-                    </h3>
-                    <p className="text-xs font-montserrat text-[#475569] dark:text-gray-400">
-                      Выберите удобное время для предварительной записи
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Используем новый UserCalendar компонент */}
-                <UserCalendar 
-                  onDateSelect={handleDateSelect}
-                  selectedDate={scheduledDate}
-                />
               </IonCardContent>
             </IonCard>
           </div>

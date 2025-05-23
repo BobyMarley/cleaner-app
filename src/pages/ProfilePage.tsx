@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { IonContent, IonHeader, IonPage, IonToolbar, IonButton, IonIcon, IonLabel, IonFooter, IonTabBar, IonTabButton, IonImg, IonInput, IonSpinner, IonModal, IonSegment, IonSegmentButton, IonLoading, IonAlert } from '@ionic/react';
 import { useNavigate } from 'react-router-dom';
 import { homeOutline, personOutline, cartOutline, sunnyOutline, moonOutline, logOutOutline, cameraOutline, calendarOutline, chatbubbleOutline, notificationsOutline, arrowBackOutline, addOutline, star, chatbubblesOutline, shieldCheckmarkOutline } from 'ionicons/icons';
-import newLogo from '../assets/new-logo.png';
+import newLogo from '../assets/new-logo.png'; //
 import { auth, getUserReviews, Review, Order } from '../services/firebase';
 import { updatePassword, updateProfile } from 'firebase/auth';
-import { getFirestore, collection, query, where, getDocs, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore'; //
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import ReviewCard from '../components/ReviewCard';
 import AddReviewForm from '../components/AddReviewForm';
@@ -13,12 +13,12 @@ import AddReviewForm from '../components/AddReviewForm';
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
-  const [role, setRole] = useState<'client' | 'worker' | 'admin'>('client'); // Добавил тип 'admin'
+  const [role, setRole] = useState<'client' | 'worker' | 'admin'>('client');
   const [avatar, setAvatar] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState<string>('');
-  const [orders, setOrders] = useState<Order[]>([]); // Явно типизировал как Order[]
-  const [currentOrder, setCurrentOrder] = useState<Order | null>(null); // Явно типизировал
-  const [pendingOrder, setPendingOrder] = useState<Order | null>(null); // Явно типизировал
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+  const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedSegment, setSelectedSegment] = useState<string>('info');
 
@@ -39,14 +39,14 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     // Проверяем авторизацию
     const checkAuth = () => {
-      const unsubscribe = auth.onAuthStateChanged(async (currentUser) => { // async добавлен для await
+      const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
         if (!currentUser) {
           navigate('/login');
         } else {
           // Получаем роль пользователя из Firestore
           const userDocRef = doc(db, 'users', currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          let userRole: 'client' | 'worker' | 'admin' = 'client'; // Дефолтная роль
+          const userDocSnap = await getDoc(userDocRef); //
+          let userRole: 'client' | 'worker' | 'admin' = 'client';
 
           if (userDocSnap.exists()) {
             const userData = userDocSnap.data();
@@ -57,13 +57,13 @@ const ProfilePage: React.FC = () => {
 
           // Дополнительная проверка на админа по email, если роль не установлена в Firestore
           if (currentUser.email?.includes('plenkanet') && userRole !== 'admin') {
-              userRole = 'admin'; // Присваиваем роль админа, если email соответствует
+              userRole = 'admin';
           }
 
           setRole(userRole);
           setLoading(false);
-          fetchOrders(currentUser, userRole); // Передаем пользователя и его роль
-          fetchUserReviews(currentUser, userRole); // Передаем пользователя и его роль
+          fetchOrders(currentUser, userRole);
+          fetchUserReviews(currentUser, userRole);
           setAvatar(currentUser.photoURL);
         }
       });
@@ -72,11 +72,11 @@ const ProfilePage: React.FC = () => {
     };
 
     checkAuth();
-  }, [navigate, db]); // Добавил db в зависимости useEffect
+  }, [navigate, db]);
 
   // Обновил fetchOrders, чтобы принимать пользователя и его роль
   const fetchOrders = async (currentUser: any, currentUserRole: 'client' | 'worker' | 'admin') => {
-    if (currentUser && currentUserRole !== 'admin') { // Заказы не нужны админам
+    if (currentUser && currentUserRole !== 'admin') {
       try {
         const ordersQuery = query(
           collection(db, 'orders'),
@@ -85,7 +85,7 @@ const ProfilePage: React.FC = () => {
         );
         const ordersSnapshot = await getDocs(ordersQuery);
 
-        const ordersList: Order[] = ordersSnapshot.docs.map(doc => {
+        const allOrders: Order[] = ordersSnapshot.docs.map(doc => {
           const data = doc.data();
           return {
             id: doc.id,
@@ -96,48 +96,43 @@ const ProfilePage: React.FC = () => {
           } as Order;
         });
 
-        const history: Order[] = [];
-        let current: Order | null = null;
-        let pending: Order | null = null;
+        const historyOrders: Order[] = [];
+        let foundCurrentOrder: Order | null = null;
+        let foundPendingOrder: Order | null = null;
 
         const now = new Date();
         now.setHours(0, 0, 0, 0);
 
-        // Логика определения текущих, запланированных и прошлых заказов
-        ordersList.forEach(order => {
+        // Перебираем все заказы, чтобы найти текущий и запланированный
+        allOrders.forEach(order => {
           const scheduledDate = order.scheduledDate;
           const createdAt = order.createdAt;
 
-          // Проверяем, есть ли scheduledDate и не просрочена ли она
+          // Если у заказа есть запланированная дата и она в будущем
           if (scheduledDate && scheduledDate.getTime() >= now.getTime()) {
-            // Если есть запланированная дата и она в будущем
-            if (!pending || scheduledDate.getTime() < (pending.scheduledDate?.getTime() || Infinity)) {
-                pending = order; // Находим ближайший запланированный
-            }
-          } else if (createdAt && createdAt.getTime() >= now.getTime()) {
-            // Если нет запланированной даты, но создан сегодня или в будущем
-            if (!current || createdAt.getTime() < (current.createdAt?.getTime() || Infinity)) {
-                current = order; // Находим ближайший текущий
-            }
-          } else {
-            history.push(order); // Все остальные - в историю
+              if (foundPendingOrder === null || (foundPendingOrder.scheduledDate && scheduledDate.getTime() < foundPendingOrder.scheduledDate.getTime())) {
+                  foundPendingOrder = order;
+              }
+          }
+          // Если у заказа нет запланированной даты, но он создан сегодня или в будущем
+          else if (createdAt && createdAt.getTime() >= now.getTime()) {
+              if (foundCurrentOrder === null || (foundCurrentOrder.createdAt && createdAt.getTime() < foundCurrentOrder.createdAt.getTime())) {
+                  foundCurrentOrder = order;
+              }
           }
         });
 
-        // Если текущий заказ является запланированным, переносим его в pending
-        if (current && pending && current.id === pending.id) {
-            current = null;
-        }
+        // Теперь формируем историю заказов, исключая найденные текущий и запланированный
+        allOrders.forEach(order => {
+            if (order.id !== foundCurrentOrder?.id && order.id !== foundPendingOrder?.id) {
+                historyOrders.push(order);
+            }
+        });
 
-        // Фильтруем историю, чтобы не включать текущий и запланированный заказ
-        const filteredHistory = history.filter(
-            (order) => order.id !== current?.id && order.id !== pending?.id
-        );
-
-
-        setOrders(filteredHistory);
-        setCurrentOrder(current);
-        setPendingOrder(pending);
+        // Устанавливаем состояния
+        setCurrentOrder(foundCurrentOrder);
+        setPendingOrder(foundPendingOrder);
+        setOrders(historyOrders); // Это теперь массив истории заказов
 
       } catch (error) {
         console.error('Ошибка при получении заказов:', error);
@@ -147,7 +142,7 @@ const ProfilePage: React.FC = () => {
 
   // Обновил fetchUserReviews, чтобы принимать пользователя и его роль
   const fetchUserReviews = async (currentUser: any, currentUserRole: 'client' | 'worker' | 'admin') => {
-    if (currentUser && currentUserRole !== 'admin') { // Отзывы не нужны админам
+    if (currentUser && currentUserRole !== 'admin') {
       try {
         setLoadingReviews(true);
         const reviews = await getUserReviews(currentUser.uid);
@@ -171,11 +166,11 @@ const ProfilePage: React.FC = () => {
   };
 
   const goToChat = () => {
-    // navigate('/chat'); // когда будет готова страница чата
+    // navigate('/chat');
   };
 
   const goToNotifications = () => {
-    // navigate('/notifications'); // когда будет готова страница уведомлений
+    // navigate('/notifications');
   };
 
   const toggleDarkMode = () => {
@@ -274,7 +269,7 @@ const ProfilePage: React.FC = () => {
 
   const handleReviewAdded = () => {
     setShowAddReviewModal(false);
-    fetchUserReviews(user, role); // Обновляем список отзывов
+    fetchUserReviews(user, role);
   };
 
   // Подсчет статистики отзывов
