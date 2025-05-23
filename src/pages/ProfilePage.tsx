@@ -3,7 +3,7 @@ import { IonContent, IonHeader, IonPage, IonToolbar, IonButton, IonIcon, IonItem
 import { useNavigate } from 'react-router-dom';
 import { homeOutline, personOutline, cartOutline, sunnyOutline, moonOutline, logOutOutline, cameraOutline, calendarOutline, chatbubbleOutline, notificationsOutline, arrowBackOutline, addOutline, star, chatbubblesOutline } from 'ionicons/icons';
 import newLogo from '../assets/new-logo.png';
-import { auth, getUserReviews, Review } from '../services/firebase';
+import { auth, getUserReviews, Review, Order } from '../services/firebase'; 
 import { updatePassword, updateProfile } from 'firebase/auth';
 import { getFirestore, collection, query, where, getDocs, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -57,47 +57,56 @@ const ProfilePage: React.FC = () => {
     checkAuth();
   }, [navigate]);
 
-  const fetchOrders = async () => {
-    if (user) {
-      try {
-        const ordersQuery = query(
-          collection(db, 'orders'),
-          where('userId', '==', user.uid),
-          orderBy('createdAt', 'desc')
-        );
-        const ordersSnapshot = await getDocs(ordersQuery);
-        const ordersList = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+ const fetchOrders = async () => {
+  if (user) {
+    try {
+      const ordersQuery = query(
+        collection(db, 'orders'),
+        where('userId', '==', user.uid),
+        orderBy('createdAt', 'desc')
+      );
+      const ordersSnapshot = await getDocs(ordersQuery);
 
-        const history: any[] = [];
-        let current: any = null;
-        let pending: any = null;
+      // ИСПРАВЛЕНО: Явно типизируем ordersList как Order[]
+      const ordersList: Order[] = ordersSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Безопасное преобразование Timestamp в Date
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+          scheduledDate: data.scheduledDate?.toDate ? data.scheduledDate.toDate() : (data.scheduledDate ? new Date(data.scheduledDate) : undefined),
+          updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.updatedAt ? new Date(data.updatedAt) : undefined)
+        } as Order;
+      });
 
-        ordersList.forEach(order => {
-          // Безопасное преобразование дат
-          const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
-          const scheduledDate = order.scheduledDate 
-            ? (order.scheduledDate?.toDate ? order.scheduledDate.toDate() : new Date(order.scheduledDate))
-            : null;
-          const today = new Date();
+      const history: Order[] = []; // Также явно типизируем history
+      let current: Order | null = null; // Типизируем current и pending
+      let pending: Order | null = null;
 
-          if (scheduledDate && scheduledDate > today) {
-            pending = order;
-          } else if (orderDate.toDateString() === today.toDateString()) {
-            current = order;
-          } else {
-            history.push(order);
-          }
-        });
+      ordersList.forEach(order => {
+        const scheduledDate = order.scheduledDate; // Теперь order имеет тип Order
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Обнуляем время для сравнения только дат
 
-        setOrders(history);
-        setCurrentOrder(current);
-        setPendingOrder(pending);
-        setRole(user.displayName?.includes('worker') ? 'worker' : 'client');
-      } catch (error) {
-        console.error('Ошибка при получении заказов:', error);
-      }
+        if (scheduledDate && scheduledDate.getTime() > today.getTime()) {
+          pending = order;
+        } else if (order.createdAt && order.createdAt.toDateString() === today.toDateString()) {
+          current = order;
+        } else {
+          history.push(order);
+        }
+      });
+
+      setOrders(history);
+      setCurrentOrder(current);
+      setPendingOrder(pending);
+      setRole(user.displayName?.includes('worker') ? 'worker' : 'client');
+    } catch (error) {
+      console.error('Ошибка при получении заказов:', error);
     }
-  };
+  }
+};
 
   const fetchUserReviews = async () => {
     if (user) {

@@ -1,5 +1,8 @@
 {
   "name": "cleaner-app",
-  "integrations": {},
-  "type": "react-vite"
+  "integrations": {
+    "capacitor": {},
+    "react": {}
+  },
+  "type": "react"
 }
