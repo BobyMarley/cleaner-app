@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { IonContent, IonHeader, IonPage, IonToolbar, IonButton, IonIcon, IonItem, IonLabel, IonFooter, IonTabBar, IonTabButton, IonImg, IonInput, IonSpinner, IonModal, IonSegment, IonSegmentButton, IonLoading, IonAlert } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonToolbar, IonButton, IonIcon, IonLabel, IonFooter, IonTabBar, IonTabButton, IonImg, IonInput, IonSpinner, IonModal, IonSegment, IonSegmentButton, IonLoading, IonAlert } from '@ionic/react';
 import { useNavigate } from 'react-router-dom';
-import { homeOutline, personOutline, cartOutline, sunnyOutline, moonOutline, logOutOutline, cameraOutline, calendarOutline, chatbubbleOutline, notificationsOutline, arrowBackOutline, addOutline, star, chatbubblesOutline } from 'ionicons/icons';
+import { homeOutline, personOutline, cartOutline, sunnyOutline, moonOutline, logOutOutline, cameraOutline, calendarOutline, chatbubbleOutline, notificationsOutline, arrowBackOutline, addOutline, star, chatbubblesOutline, shieldCheckmarkOutline } from 'ionicons/icons';
 import newLogo from '../assets/new-logo.png';
-import { auth, getUserReviews, Review, Order } from '../services/firebase'; 
+import { auth, getUserReviews, Review, Order } from '../services/firebase';
 import { updatePassword, updateProfile } from 'firebase/auth';
-import { getFirestore, collection, query, where, getDocs, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import ReviewCard from '../components/ReviewCard';
 import AddReviewForm from '../components/AddReviewForm';
@@ -13,25 +13,25 @@ import AddReviewForm from '../components/AddReviewForm';
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
-  const [role, setRole] = useState<'client' | 'worker'>('client');
+  const [role, setRole] = useState<'client' | 'worker' | 'admin'>('client'); // Добавил тип 'admin'
   const [avatar, setAvatar] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState<string>('');
-  const [orders, setOrders] = useState<any[]>([]);
-  const [currentOrder, setCurrentOrder] = useState<any>(null);
-  const [pendingOrder, setPendingOrder] = useState<any>(null);
+  const [orders, setOrders] = useState<Order[]>([]); // Явно типизировал как Order[]
+  const [currentOrder, setCurrentOrder] = useState<Order | null>(null); // Явно типизировал
+  const [pendingOrder, setPendingOrder] = useState<Order | null>(null); // Явно типизировал
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedSegment, setSelectedSegment] = useState<string>('info');
-  
+
   // Состояния для отзывов
   const [userReviews, setUserReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState<boolean>(false);
   const [showAddReviewModal, setShowAddReviewModal] = useState<boolean>(false);
-  
+
   // Состояния для загрузки аватара
   const [uploadingAvatar, setUploadingAvatar] = useState<boolean>(false);
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [alertMessage, setAlertMessage] = useState<string>('');
-  
+
   const user = auth.currentUser;
   const db = getFirestore();
   const storage = getStorage();
@@ -39,15 +39,32 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     // Проверяем авторизацию
     const checkAuth = () => {
-      const unsubscribe = auth.onAuthStateChanged((user) => {
-        if (!user) {
+      const unsubscribe = auth.onAuthStateChanged(async (currentUser) => { // async добавлен для await
+        if (!currentUser) {
           navigate('/login');
         } else {
+          // Получаем роль пользователя из Firestore
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          let userRole: 'client' | 'worker' | 'admin' = 'client'; // Дефолтная роль
+
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            if (userData.role) {
+              userRole = userData.role;
+            }
+          }
+
+          // Дополнительная проверка на админа по email, если роль не установлена в Firestore
+          if (currentUser.email?.includes('plenkanet') && userRole !== 'admin') {
+              userRole = 'admin'; // Присваиваем роль админа, если email соответствует
+          }
+
+          setRole(userRole);
           setLoading(false);
-          fetchOrders();
-          fetchUserReviews();
-          // Загружаем аватар пользователя
-          setAvatar(user.photoURL);
+          fetchOrders(currentUser, userRole); // Передаем пользователя и его роль
+          fetchUserReviews(currentUser, userRole); // Передаем пользователя и его роль
+          setAvatar(currentUser.photoURL);
         }
       });
 
@@ -55,64 +72,85 @@ const ProfilePage: React.FC = () => {
     };
 
     checkAuth();
-  }, [navigate]);
+  }, [navigate, db]); // Добавил db в зависимости useEffect
 
- const fetchOrders = async () => {
-  if (user) {
-    try {
-      const ordersQuery = query(
-        collection(db, 'orders'),
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
-      const ordersSnapshot = await getDocs(ordersQuery);
+  // Обновил fetchOrders, чтобы принимать пользователя и его роль
+  const fetchOrders = async (currentUser: any, currentUserRole: 'client' | 'worker' | 'admin') => {
+    if (currentUser && currentUserRole !== 'admin') { // Заказы не нужны админам
+      try {
+        const ordersQuery = query(
+          collection(db, 'orders'),
+          where('userId', '==', currentUser.uid),
+          orderBy('createdAt', 'desc')
+        );
+        const ordersSnapshot = await getDocs(ordersQuery);
 
-      // ИСПРАВЛЕНО: Явно типизируем ordersList как Order[]
-      const ordersList: Order[] = ordersSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          // Безопасное преобразование Timestamp в Date
-          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
-          scheduledDate: data.scheduledDate?.toDate ? data.scheduledDate.toDate() : (data.scheduledDate ? new Date(data.scheduledDate) : undefined),
-          updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.updatedAt ? new Date(data.updatedAt) : undefined)
-        } as Order;
-      });
+        const ordersList: Order[] = ordersSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+            scheduledDate: data.scheduledDate?.toDate ? data.scheduledDate.toDate() : (data.scheduledDate ? new Date(data.scheduledDate) : undefined),
+            updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.updatedAt ? new Date(data.updatedAt) : undefined)
+          } as Order;
+        });
 
-      const history: Order[] = []; // Также явно типизируем history
-      let current: Order | null = null; // Типизируем current и pending
-      let pending: Order | null = null;
+        const history: Order[] = [];
+        let current: Order | null = null;
+        let pending: Order | null = null;
 
-      ordersList.forEach(order => {
-        const scheduledDate = order.scheduledDate; // Теперь order имеет тип Order
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Обнуляем время для сравнения только дат
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
 
-        if (scheduledDate && scheduledDate.getTime() > today.getTime()) {
-          pending = order;
-        } else if (order.createdAt && order.createdAt.toDateString() === today.toDateString()) {
-          current = order;
-        } else {
-          history.push(order);
+        // Логика определения текущих, запланированных и прошлых заказов
+        ordersList.forEach(order => {
+          const scheduledDate = order.scheduledDate;
+          const createdAt = order.createdAt;
+
+          // Проверяем, есть ли scheduledDate и не просрочена ли она
+          if (scheduledDate && scheduledDate.getTime() >= now.getTime()) {
+            // Если есть запланированная дата и она в будущем
+            if (!pending || scheduledDate.getTime() < (pending.scheduledDate?.getTime() || Infinity)) {
+                pending = order; // Находим ближайший запланированный
+            }
+          } else if (createdAt && createdAt.getTime() >= now.getTime()) {
+            // Если нет запланированной даты, но создан сегодня или в будущем
+            if (!current || createdAt.getTime() < (current.createdAt?.getTime() || Infinity)) {
+                current = order; // Находим ближайший текущий
+            }
+          } else {
+            history.push(order); // Все остальные - в историю
+          }
+        });
+
+        // Если текущий заказ является запланированным, переносим его в pending
+        if (current && pending && current.id === pending.id) {
+            current = null;
         }
-      });
 
-      setOrders(history);
-      setCurrentOrder(current);
-      setPendingOrder(pending);
-      setRole(user.displayName?.includes('worker') ? 'worker' : 'client');
-    } catch (error) {
-      console.error('Ошибка при получении заказов:', error);
+        // Фильтруем историю, чтобы не включать текущий и запланированный заказ
+        const filteredHistory = history.filter(
+            (order) => order.id !== current?.id && order.id !== pending?.id
+        );
+
+
+        setOrders(filteredHistory);
+        setCurrentOrder(current);
+        setPendingOrder(pending);
+
+      } catch (error) {
+        console.error('Ошибка при получении заказов:', error);
+      }
     }
-  }
-};
+  };
 
-  const fetchUserReviews = async () => {
-    if (user) {
+  // Обновил fetchUserReviews, чтобы принимать пользователя и его роль
+  const fetchUserReviews = async (currentUser: any, currentUserRole: 'client' | 'worker' | 'admin') => {
+    if (currentUser && currentUserRole !== 'admin') { // Отзывы не нужны админам
       try {
         setLoadingReviews(true);
-        const reviews = await getUserReviews(user.uid);
+        const reviews = await getUserReviews(currentUser.uid);
         setUserReviews(reviews);
       } catch (error) {
         console.error('Ошибка при получении отзывов пользователя:', error);
@@ -122,24 +160,21 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+
   // Функции навигации
   const goToHome = () => {
-    console.log('Переход на главную');
     navigate('/');
   };
-  
+
   const goToOrder = () => {
-    console.log('Переход к заказам');
     navigate('/order');
   };
 
   const goToChat = () => {
-    console.log('Переход к чату');
     // navigate('/chat'); // когда будет готова страница чата
   };
 
   const goToNotifications = () => {
-    console.log('Переход к уведомлениям');
     // navigate('/notifications'); // когда будет готова страница уведомлений
   };
 
@@ -150,7 +185,6 @@ const ProfilePage: React.FC = () => {
 
   const handleLogout = () => {
     auth.signOut().then(() => {
-      console.log('Выход выполнен');
       navigate('/login');
     });
   };
@@ -210,7 +244,7 @@ const ProfilePage: React.FC = () => {
 
       // Обновляем локальное состояние
       setAvatar(downloadURL);
-      
+
       setAlertMessage('Аватар успешно обновлен!');
       setShowAlert(true);
 
@@ -240,7 +274,7 @@ const ProfilePage: React.FC = () => {
 
   const handleReviewAdded = () => {
     setShowAddReviewModal(false);
-    fetchUserReviews(); // Обновляем список отзывов
+    fetchUserReviews(user, role); // Обновляем список отзывов
   };
 
   // Подсчет статистики отзывов
@@ -248,8 +282,8 @@ const ProfilePage: React.FC = () => {
     total: userReviews.length,
     approved: userReviews.filter(r => r.isApproved).length,
     pending: userReviews.filter(r => !r.isApproved).length,
-    avgRating: userReviews.length > 0 
-      ? userReviews.reduce((sum, r) => sum + r.rating, 0) / userReviews.length 
+    avgRating: userReviews.length > 0
+      ? userReviews.reduce((sum, r) => sum + r.rating, 0) / userReviews.length
       : 0
   };
 
@@ -290,28 +324,28 @@ const ProfilePage: React.FC = () => {
           <div className="flex flex-col items-center mb-8">
             <div className="relative w-28 h-28">
               <div className="w-28 h-28 overflow-hidden rounded-full border-4 border-white dark:border-gray-700 shadow-lg">
-                <img 
-                  src={avatar || user?.photoURL || 'https://via.placeholder.com/100'} 
-                  alt="Аватар профиля" 
+                <img
+                  src={avatar || user?.photoURL || 'https://via.placeholder.com/100'}
+                  alt="Аватар профиля"
                   className="w-full h-full object-cover"
                 />
               </div>
-              <IonButton 
-                fill="clear" 
+              <IonButton
+                fill="clear"
                 disabled={uploadingAvatar}
                 className="absolute bottom-0 right-0 bg-[#6366f1] rounded-full p-0 w-10 h-10 flex items-center justify-center shadow-md"
               >
-                <IonIcon 
-                  icon={uploadingAvatar ? undefined : cameraOutline} 
-                  className="text-white" 
+                <IonIcon
+                  icon={uploadingAvatar ? undefined : cameraOutline}
+                  className="text-white"
                 />
                 {uploadingAvatar && <IonSpinner name="crescent" className="w-5 h-5 text-white" />}
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleAvatarUpload} 
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
                   disabled={uploadingAvatar}
-                  className="absolute inset-0 opacity-0 cursor-pointer" 
+                  className="absolute inset-0 opacity-0 cursor-pointer"
                 />
               </IonButton>
             </div>
@@ -335,43 +369,49 @@ const ProfilePage: React.FC = () => {
                 Быстрая навигация
               </h3>
               <div className="flex space-x-3">
-                <IonButton 
-                  onClick={goToHome} 
-                  expand="block" 
+                <IonButton
+                  onClick={goToHome}
+                  expand="block"
                   fill="outline"
                   className="flex-1 rounded-xl text-sm font-montserrat h-12"
                 >
                   <IonIcon icon={homeOutline} className="mr-2" />
                   Главная
                 </IonButton>
-                <IonButton 
-                  onClick={goToOrder} 
-                  expand="block" 
-                  className="flex-1 custom-button rounded-xl text-sm font-montserrat h-12"
-                >
-                  <IonIcon icon={cartOutline} className="mr-2" />
-                  Заказать
-                </IonButton>
+                {role !== 'admin' && ( // Показываем Заказать только если не админ
+                  <IonButton
+                    onClick={goToOrder}
+                    expand="block"
+                    className="flex-1 custom-button rounded-xl text-sm font-montserrat h-12"
+                  >
+                    <IonIcon icon={cartOutline} className="mr-2" />
+                    Заказать
+                  </IonButton>
+                )}
               </div>
             </div>
           </div>
 
           {/* Сегментированное управление */}
           <div className="w-full max-w-md mb-6">
-            <IonSegment 
-              value={selectedSegment} 
+            <IonSegment
+              value={selectedSegment}
               onIonChange={(e) => setSelectedSegment(e.detail.value as string)}
               className="bg-white dark:bg-gray-800 rounded-xl shadow-xl"
             >
               <IonSegmentButton value="info" className="font-montserrat">
                 <IonLabel>Профиль</IonLabel>
               </IonSegmentButton>
-              <IonSegmentButton value="orders" className="font-montserrat">
-                <IonLabel>Заказы</IonLabel>
-              </IonSegmentButton>
-              <IonSegmentButton value="reviews" className="font-montserrat">
-                <IonLabel>Отзывы ({userReviews.length})</IonLabel>
-              </IonSegmentButton>
+              {role !== 'admin' && ( // Показываем вкладки Заказы и Отзывы только если не админ
+                <>
+                  <IonSegmentButton value="orders" className="font-montserrat">
+                    <IonLabel>Заказы</IonLabel>
+                  </IonSegmentButton>
+                  <IonSegmentButton value="reviews" className="font-montserrat">
+                    <IonLabel>Отзывы ({userReviews.length})</IonLabel>
+                  </IonSegmentButton>
+                </>
+              )}
             </IonSegment>
           </div>
 
@@ -382,34 +422,34 @@ const ProfilePage: React.FC = () => {
                 <h3 className="text-lg font-montserrat font-bold text-[#1e293b] dark:text-white mb-4">
                   Информация профиля
                 </h3>
-                
+
                 <div className="space-y-4">
                   <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-700">
                     <span className="text-sm text-[#475569] dark:text-gray-400 font-montserrat">Роль</span>
                     <span className="text-[#1e293b] dark:text-white font-montserrat font-medium">
-                      {role === 'client' ? 'Клиент' : 'Работник'}
+                      {role === 'client' ? 'Клиент' : (role === 'worker' ? 'Работник' : 'Администратор')}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-700">
                     <span className="text-sm text-[#475569] dark:text-gray-400 font-montserrat">Дата регистрации</span>
                     <span className="text-[#1e293b] dark:text-white font-montserrat font-medium">
                       {user?.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : '01.05.2025'}
                     </span>
                   </div>
-                  
+
                   <div className="flex flex-col space-y-2">
                     <span className="text-sm text-[#475569] dark:text-gray-400 font-montserrat">Изменить пароль</span>
                     <div className="flex items-center">
-                      <IonInput 
-                        value={newPassword} 
-                        onIonChange={(e) => setNewPassword(e.detail.value!)} 
-                        type="password" 
+                      <IonInput
+                        value={newPassword}
+                        onIonChange={(e) => setNewPassword(e.detail.value!)}
+                        type="password"
                         placeholder="Новый пароль"
-                        className="flex-1 bg-[#f8fafc] dark:bg-gray-700 rounded-xl py-2 px-4 text-[#1e293b] dark:text-white font-montserrat mr-2" 
+                        className="flex-1 bg-[#f8fafc] dark:bg-gray-700 rounded-xl py-2 px-4 text-[#1e293b] dark:text-white font-montserrat mr-2"
                       />
-                      <IonButton 
-                        onClick={handlePasswordChange} 
+                      <IonButton
+                        onClick={handlePasswordChange}
                         disabled={!newPassword || newPassword.length < 6}
                         className="custom-button rounded-xl shadow-md text-sm font-montserrat h-10"
                       >
@@ -418,16 +458,32 @@ const ProfilePage: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {role === 'admin' && ( // Показываем кнопку админ-панели только админам
+                  <div className="mt-6 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl text-center">
+                    <IonIcon icon={shieldCheckmarkOutline} className="text-indigo-600 dark:text-indigo-400 text-3xl mb-3" />
+                    <p className="text-base font-montserrat font-semibold text-indigo-700 dark:text-indigo-300 mb-4">
+                      Вы вошли как Администратор
+                    </p>
+                    <IonButton
+                      onClick={() => navigate('/admin')}
+                      expand="block"
+                      className="custom-button rounded-xl text-sm font-montserrat h-12"
+                    >
+                      Перейти в Админ-панель
+                    </IonButton>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Заказы */}
-            {selectedSegment === 'orders' && (
+            {selectedSegment === 'orders' && role !== 'admin' && ( // Показываем Заказы только если не админ
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full">
                 <h3 className="text-lg font-montserrat font-bold text-[#1e293b] dark:text-white mb-4">
                   Заказы
                 </h3>
-                
+
                 <div className="space-y-4">
                   <div>
                     <h4 className="text-sm font-montserrat font-semibold text-[#475569] dark:text-gray-400 mb-2">Текущий заказ</h4>
@@ -435,10 +491,7 @@ const ProfilePage: React.FC = () => {
                       <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-xl p-3">
                         <div className="flex justify-between">
                           <span className="text-[#1e293b] dark:text-white font-montserrat">
-                            {(() => {
-                              const date = currentOrder.createdAt?.toDate ? currentOrder.createdAt.toDate() : new Date(currentOrder.createdAt);
-                              return date.toLocaleDateString();
-                            })()}
+                            {currentOrder.createdAt?.toLocaleDateString()}
                           </span>
                           <span className="text-[#6366f1] dark:text-[#818cf8] font-montserrat font-medium">
                             {currentOrder.price || '---'}
@@ -459,17 +512,14 @@ const ProfilePage: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   <div>
                     <h4 className="text-sm font-montserrat font-semibold text-[#475569] dark:text-gray-400 mb-2">Запланированный заказ</h4>
                     {pendingOrder ? (
                       <div className="bg-purple-50 dark:bg-purple-900/30 rounded-xl p-3">
                         <div className="flex justify-between">
                           <span className="text-[#1e293b] dark:text-white font-montserrat">
-                            {(() => {
-                              const date = pendingOrder.scheduledDate?.toDate ? pendingOrder.scheduledDate.toDate() : new Date(pendingOrder.scheduledDate);
-                              return date.toLocaleDateString();
-                            })()}
+                            {pendingOrder.scheduledDate?.toLocaleDateString()}
                           </span>
                           <span className="text-[#6366f1] dark:text-[#818cf8] font-montserrat font-medium">
                             {pendingOrder.price || '---'}
@@ -485,7 +535,7 @@ const ProfilePage: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   <div>
                     <h4 className="text-sm font-montserrat font-semibold text-[#475569] dark:text-gray-400 mb-2">История заказов</h4>
                     {orders.length > 0 ? (
@@ -494,10 +544,7 @@ const ProfilePage: React.FC = () => {
                           <div key={order.id} className="bg-gray-50 dark:bg-gray-700 rounded-xl p-3">
                             <div className="flex justify-between">
                               <span className="text-[#1e293b] dark:text-white font-montserrat">
-                                {(() => {
-                                  const date = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
-                                  return date.toLocaleDateString();
-                                })()}
+                                {order.createdAt?.toLocaleDateString()}
                               </span>
                               <span className="text-[#6366f1] dark:text-[#818cf8] font-montserrat font-medium">
                                 {order.price || '---'}
@@ -520,7 +567,7 @@ const ProfilePage: React.FC = () => {
             )}
 
             {/* Отзывы */}
-            {selectedSegment === 'reviews' && (
+            {selectedSegment === 'reviews' && role !== 'admin' && ( // Показываем Отзывы только если не админ
               <div className="space-y-4">
                 {/* Статистика отзывов */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full">
@@ -589,9 +636,9 @@ const ProfilePage: React.FC = () => {
                 ) : userReviews.length > 0 ? (
                   <div className="space-y-3">
                     {userReviews.map((review) => (
-                      <ReviewCard 
-                        key={review.id} 
-                        review={review} 
+                      <ReviewCard
+                        key={review.id}
+                        review={review}
                         compact={true}
                       />
                     ))}
@@ -616,13 +663,14 @@ const ProfilePage: React.FC = () => {
                 )}
               </div>
             )}
-            
+
             {/* Кнопка выхода */}
-            <IonButton 
-              onClick={handleLogout} 
-              expand="block" 
+            <IonButton
+              onClick={handleLogout}
+              expand="block"
               fill="outline"
-              className="rounded-xl shadow-lg text-base font-montserrat h-14 w-full border-red-300 text-red-600 dark:border-red-600 dark:text-red-400"
+              // Убраны классы, которые делали кнопку красной
+              className="rounded-xl shadow-lg text-base font-montserrat h-14 w-full"
             >
               <IonIcon icon={logOutOutline} className="mr-2" /> Выйти
             </IonButton>
@@ -650,9 +698,9 @@ const ProfilePage: React.FC = () => {
         <IonHeader>
           <IonToolbar>
             <IonLabel slot="start" className="ml-4 font-montserrat font-bold">Новый отзыв</IonLabel>
-            <IonButton 
-              slot="end" 
-              fill="clear" 
+            <IonButton
+              slot="end"
+              fill="clear"
               onClick={() => setShowAddReviewModal(false)}
               className="mr-2"
             >
@@ -661,7 +709,7 @@ const ProfilePage: React.FC = () => {
           </IonToolbar>
         </IonHeader>
         <IonContent className="p-4">
-          <AddReviewForm 
+          <AddReviewForm
             onReviewAdded={handleReviewAdded}
             onCancel={() => setShowAddReviewModal(false)}
           />
@@ -674,10 +722,17 @@ const ProfilePage: React.FC = () => {
             <IonIcon icon={homeOutline} className="text-2xl" />
             <IonLabel className="text-xs font-montserrat">Главная</IonLabel>
           </IonTabButton>
-          <IonTabButton onClick={goToOrder}>
-            <IonIcon icon={calendarOutline} className="text-2xl" />
-            <IonLabel className="text-xs font-montserrat">Заказы</IonLabel>
-          </IonTabButton>
+          {role !== 'admin' ? ( // Если не админ, показываем вкладку "Заказы"
+            <IonTabButton onClick={goToOrder}>
+              <IonIcon icon={calendarOutline} className="text-2xl" />
+              <IonLabel className="text-xs font-montserrat">Заказы</IonLabel>
+            </IonTabButton>
+          ) : ( // Если админ, показываем вкладку "Админ"
+            <IonTabButton onClick={() => navigate('/admin')}>
+              <IonIcon icon={shieldCheckmarkOutline} className="text-2xl" />
+              <IonLabel className="text-xs font-montserrat">Админ</IonLabel>
+            </IonTabButton>
+          )}
           <IonTabButton onClick={goToChat}>
             <IonIcon icon={chatbubbleOutline} className="text-2xl" />
             <IonLabel className="text-xs font-montserrat">Чат</IonLabel>

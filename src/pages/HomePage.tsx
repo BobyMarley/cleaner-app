@@ -149,14 +149,14 @@ const HomePage: React.FC = () => {
   const popularServices = [
     { 
       name: 'Чистка дивана', 
-      price: 'от 2900zł', 
+      price: 'от 180zł', 
       time: '~1.5 часа',
       color: 'bg-purple-100 dark:bg-purple-900',
       icon: cubeOutline
     },
     { 
       name: 'Чистка ковра', 
-      price: 'от 1800zł', 
+      price: 'от 15zł м.кв.', 
       time: '~1 час',
       color: 'bg-blue-100 dark:bg-blue-900',
       icon: appsOutline
@@ -285,7 +285,7 @@ const HomePage: React.FC = () => {
                 fill="clear" 
                 size="small"
                 onClick={goToReviews}
-                className="text-indigo-600 dark:text-indigo-400 font-montserrat text-xs"
+                className="font-montserrat text-xs"
               >
                 Все отзывы
                 <IonIcon icon={arrowForwardOutline} className="ml-1" />
