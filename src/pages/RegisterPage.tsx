@@ -289,8 +289,7 @@ const RegisterPage: React.FC<{ isWorker?: boolean }> = ({ isWorker }) => {
         <IonToolbar className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] shadow-lg">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center">
-              <img src={newLogo} alt="BrightWaw Logo" className="h-9 mr-3" />
-              <span className="text-white font-montserrat text-xl font-bold tracking-tight">BrightWaw</span>
+              <img src={newLogo} alt="BrightWaw Logo" className="h-12 mr-3" />              
             </div>
             <div className="flex items-center space-x-3">
               <IonButton fill="clear" onClick={toggleDarkMode} className="text-white">

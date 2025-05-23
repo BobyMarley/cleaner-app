@@ -230,7 +230,7 @@ const ReviewsPage: React.FC = () => {
               <IonButton fill="clear" onClick={() => navigate(-1)} className="text-indigo-600 dark:text-indigo-400 mr-2">
                 <IonIcon icon={arrowBackOutline} className="text-xl" />
               </IonButton>
-              <img src={newLogo} alt="BrightWaw Logo" className="h-8 mr-2" />
+              <img src={newLogo} alt="BrightWaw Logo" className="h-12 mr-3" />
               <span className="text-indigo-600 dark:text-indigo-400 font-montserrat text-xl font-bold tracking-tight">
                 Отзывы
               </span>

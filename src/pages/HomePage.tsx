@@ -169,8 +169,7 @@ const HomePage: React.FC = () => {
         <IonToolbar className="bg-white dark:bg-gray-800 shadow-sm">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center">
-              <img src={newLogo} alt="BrightWaw Logo" className="h-8 mr-2" />
-              <span className="text-indigo-600 dark:text-indigo-400 font-montserrat text-xl font-bold tracking-tight">BrightWaw</span>
+              <img src={newLogo} alt="BrightWaw Logo" className="h-12 mr-3" />              
             </div>
             <div className="flex items-center space-x-2">
               <IonButton fill="clear" onClick={toggleDarkMode} className="text-indigo-600 dark:text-indigo-400">

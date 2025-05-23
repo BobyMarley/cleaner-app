@@ -1,13 +1,18 @@
 import React from 'react';
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
 import OrderForm from '../components/OrderForm';
+import newLogo from '../assets/new-logo.png';
 
 const OrderPage: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar className="bg-[#003087]">
-          <IonTitle className="text-white font-montserrat text-2xl">BrightWaw</IonTitle>
+          <div className="flex items-center justify-between px-4 py-3">
+           <div className="flex items-center">
+            <img src={newLogo} alt="BrightWaw Logo" className="h-12 mr-3" />              
+           </div>
+          </div>
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-gray-100">

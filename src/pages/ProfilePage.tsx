@@ -302,8 +302,7 @@ const ProfilePage: React.FC = () => {
               <IonButton fill="clear" onClick={goToHome} className="text-white mr-2">
                 <IonIcon icon={arrowBackOutline} className="text-xl" />
               </IonButton>
-              <img src={newLogo} alt="BrightWaw Logo" className="h-9 mr-3" />
-              <span className="text-white font-montserrat text-xl font-bold tracking-tight">BrightWaw</span>
+              <img src={newLogo} alt="BrightWaw Logo" className="h-12 mr-3" />              
             </div>
             <div className="flex items-center space-x-3">
               <IonButton fill="clear" onClick={toggleDarkMode} className="text-white">
